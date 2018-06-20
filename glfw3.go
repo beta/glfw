@@ -5,9 +5,43 @@
 
 package glfw3
 
-// #cgo pkg-config: glfw3
-// #include <GLFW/glfw3.h>
+/*
+#cgo pkg-config: glfw3
+#include <GLFW/glfw3.h>
+
+// Gateway for error callback function in Go.
+void _errorCallback(int, char*);
+
+// Workaround due to that Go does not support const function params.
+static void _errorCallbackConst(int err, const char* desc) {
+	_errorCallback(err, desc);
+}
+
+// Sets an error callback.
+static void goSetErrorCallback() {
+	glfwSetErrorCallback(_errorCallbackConst);
+}
+
+// Removes the error callback.
+static void goRemoveErrorCallback() {
+	glfwSetErrorCallback(NULL);
+}
+
+// Gateway for monitor callback function in Go.
+void _monitorCallback(GLFWmonitor*, int);
+
+// Sets an monitor callback.
+static void goSetMonitorCallback() {
+	glfwSetMonitorCallback(_monitorCallback);
+}
+
+// Removes the monitor callback.
+static void goRemoveMonitorCallback() {
+	glfwSetMonitorCallback(NULL);
+}
+*/
 import "C"
+import "unsafe"
 
 // GLFW version constants.
 const (
@@ -482,24 +516,18 @@ const (
 )
 
 // Monitor is an opaque monitor object.
-type Monitor struct {
-	cMonitor *C.GLFWmonitor
-}
+type Monitor C.GLFWmonitor
 
 // Window is an opaque window object.
-type Window struct {
-	cWindow *C.GLFWwindow
-}
+type Window C.GLFWwindow
 
 // Cursor is an opaque cursor object.
-type Cursor struct {
-	cCursor *C.GLFWcursor
-}
+type Cursor *C.GLFWcursor
 
 // ErrorCallback is a function type for error callbacks.
 //
-// error is an Error, and desc is a string describing the error.
-type ErrorCallback func(error Error, desc string)
+// err is an Error, and desc is a string describing the error.
+type ErrorCallback func(err Error, desc string)
 
 // WindowPosCallback is the function type for window position callbacks.
 //
@@ -648,6 +676,12 @@ type Image struct {
 	Pixels []uint8
 }
 
+// Context is an entry point of all GLFW APIs that require initialization.
+type Context struct {
+	errorCallback   ErrorCallback
+	monitorCallback MonitorCallback
+}
+
 // Init initializes the GLFW library.
 //
 // This function initializes the GLFW library. Before most GLFW functions can be
@@ -661,7 +695,7 @@ type Image struct {
 // Additional calls to this function after successful initialization but before
 // termination will return true immediately.
 //
-// Returns true if successful, or false if an error occurred. Possible errors
+// Returns a Context if successful, or nil if an error occurred. Possible errors
 // include PlatformError.
 //
 // On OS X this function will change the current directory of the application to
@@ -670,8 +704,12 @@ type Image struct {
 // (http://www.glfw.org/docs/latest/compile_guide.html#compile_options_osx).
 //
 // This function must only be called from the main thread.
-func Init() bool {
-	return int(C.glfwInit()) == 1
+func Init() *Context {
+	if int(C.glfwInit()) == 1 {
+		currentContext = new(Context)
+		return currentContext
+	}
+	return nil
 }
 
 // Terminate terminates the GLFW library.
@@ -687,25 +725,23 @@ func Init() bool {
 //
 // Possible errors include PlatformError.
 //
-// This function may be called before Init().
-//
 // The contexts of any remaining windows must not be current on any other thread
 // when this function is called.
 //
 // This function must not be called from a callback.
 //
 // This function must only be called from the main thread.
-func Terminate() {
+func (c *Context) Terminate() {
 	C.glfwTerminate()
 }
+
+var currentContext *Context
 
 // GetVersion retrieves the version of the GLFW library.
 //
 // This function retrieves the major, minor and revision numbers of the GLFW
 // library. It is intended for when you are using GLFW as a shared library and
 // want to ensure that you are using the minimum required version.
-//
-// This function may be called before Init().
 //
 // This function may be called from any thread.
 func GetVersion() (major, minor, rev int) {
@@ -727,9 +763,170 @@ func GetVersion() (major, minor, rev int) {
 // GetVersion() function provides the version of the running library binary in
 // numerical format.
 //
-// This function may be called before Init().
-//
 // This function may be called from any thread.
 func GetVersionString() string {
 	return C.GoString(C.glfwGetVersionString())
+}
+
+// SetErrorCallback sets the error callback.
+//
+// This function sets the error callback, which is called with an error code and
+// a humen-readable description each time a GLFW error occurs.
+//
+// The error callback is called on the thread where the error occurred. If you
+// are using GLFW from multiple thread, your error callback needs to be written
+// accordingly.
+//
+// Once set, the error callback remains set even after the library has been
+// terminated.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set.
+//
+// This function must only be called from the main thread.
+func (c *Context) SetErrorCallback(callback ErrorCallback) ErrorCallback {
+	previousCallback := c.errorCallback
+	c.errorCallback = callback
+	if callback != nil {
+		C.goSetErrorCallback()
+	} else {
+		C.goRemoveErrorCallback()
+	}
+	return previousCallback
+}
+
+//export _errorCallback
+func _errorCallback(cErr C.int, cDesc *C.char) {
+	if currentContext != nil && currentContext.errorCallback != nil {
+		err := Error(cErr)
+		desc := C.GoString(cDesc)
+		currentContext.errorCallback(err, desc)
+	}
+}
+
+// GetMonitors returns the currently connected monitors.
+//
+// This function returns an array of handles for all currently connected
+// monitors. The primary monitor is always first in the returned array. If no
+// monitors were found or if an error occurred, this function returns nil.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetMonitors() []*Monitor {
+	var cCount C.int
+	cMonitors := C.glfwGetMonitors(&cCount)
+	if unsafe.Pointer(cMonitors) != C.NULL {
+		count := int(cCount)
+		monitors := make([]*Monitor, 0, count)
+		for i := 0; i < count; i++ {
+			offset := unsafe.Sizeof(unsafe.Pointer(*cMonitors)) * uintptr(i)
+			monitor := *(**Monitor)(unsafe.Pointer(uintptr(unsafe.Pointer(cMonitors)) + offset))
+			monitors = append(monitors, monitor)
+		}
+		return monitors
+	}
+	return nil
+}
+
+// GetPrimaryMonitor returns the primary monitor.
+//
+// This function returns the primary monitor. This is usually the monitor where
+// elements like the task bar or global menu bar are located.
+//
+// The primary monitor, or nil if no monitors were found or if an error
+// occurred.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetPrimaryMonitor() *Monitor {
+	cMonitor := C.glfwGetPrimaryMonitor()
+	return (*Monitor)(cMonitor)
+}
+
+// GetPos returns the position of the monitor's viewport on the virtual screen.
+//
+// This function returns the position, in screen coordinates, of the upper-left
+// corner of the specific monitor.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetPos() (x, y int) {
+	var cX, cY C.int
+	C.glfwGetMonitorPos((*C.GLFWmonitor)(monitor), &cX, &cY)
+	x, y = int(cX), int(cY)
+	return
+}
+
+// GetPhysicalSize returns the physical size of the monitor.
+//
+// This function returns the size, in millimeters, of the display area of the
+// specified monitor.
+//
+// Some systems do not provide accurate monitor size information, either because
+// the monitor EDID
+// (https://en.wikipedia.org/wiki/Extended_display_identification_data) data is
+// incorrect or because the driver does not report it accurately.
+//
+// Possible errors include NotInitialized.
+//
+// On Windows, calculates the returned physical size from the current resolution
+// and system DPI instead of querying the monitor EDID data.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetPhysicalSize() (widthMM, heightMM int) {
+	var cWidth, cHeight C.int
+	C.glfwGetMonitorPhysicalSize((*C.GLFWmonitor)(monitor), &cWidth, &cHeight)
+	widthMM, heightMM = int(cWidth), int(cHeight)
+	return
+}
+
+// GetName returns the name of the specified monitor.
+//
+// This function returns a human-readable name, encoded as UTF-8, of the
+// specified monitor. The name typically reflects the make and model of the
+// monitor and is not guaranteed to be unique among the connected monitors.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetName() string {
+	return C.GoString(C.glfwGetMonitorName((*C.GLFWmonitor)(monitor)))
+}
+
+// SetMonitorCallback sets the monitor configuration callback.
+//
+// This function sets the monitor configuration callback, or removes the
+// currently set callback. This is called when a monitor is connected to or
+// disconnected from the system.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) SetMonitorCallback(callback MonitorCallback) MonitorCallback {
+	previousCallback := c.monitorCallback
+	c.monitorCallback = callback
+	if callback != nil {
+		C.goSetMonitorCallback()
+	} else {
+		C.goRemoveMonitorCallback()
+	}
+	return previousCallback
+}
+
+//export _monitorCallback
+func _monitorCallback(cMonitor *C.GLFWmonitor, cEvent C.int) {
+	if currentContext != nil && currentContext.errorCallback != nil {
+		monitor := (*Monitor)(cMonitor)
+		event := int(cEvent)
+		currentContext.monitorCallback(monitor, event)
+	}
 }
