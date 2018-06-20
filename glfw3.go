@@ -27,257 +27,277 @@ const (
 	VersionRevision uint = 1
 )
 
-// Key and button actions.
+// Action is a key and button action.
+type Action int
+
 const (
 	// Release : The key or mouse button was released.
-	Release = 0
+	Release Action = 0
 	// Press : The key or mouse button was pressed.
-	Press = 1
+	Press Action = 1
 	// Repeat : The key was held down until it repeated.
-	Repeat = 2
+	Repeat Action = 2
 )
 
-// Keyboard keys.
+// Key is a keyboard key.
 //
 // These key codes are inspired by the _USB HID Usage Tables v1.12_ (p. 53-60),
 // but re-arranged to map to 7-bit ASCII for printable keys (function keys are
 // put in the 256+ range).
 //
 // The naming of the key codes follow these rules:
-//  - The US keyboard layout is used
-//  - Names of printable alpha-numeric characters are used (e.g. "A", "R",
-//    "3", etc.)
-//  - For non-alphanumeric characters, Unicode:ish names are used (e.g.
-//    "COMMA", "LEFT_SQUARE_BRACKET", etc.). Note that some names do not
-//    correspond to the Unicode standard (usually for brevity)
-//  - Keys that lack a clear US mapping are named "WORLD_x"
-//  - For non-printable keys, custom names are used (e.g. "F4",
-//    "BACKSPACE", etc.)
+//
+// - The US keyboard layout is used
+//
+// - Names of printable alpha-numeric characters are used (e.g. "A", "R", "3",
+// etc.)
+//
+// - For non-alphanumeric characters, Unicode:ish names are used (e.g. "Comma",
+// "LeftSquareBracket", etc.). Note that some names do not correspond to the
+// Unicode standard (usually for brevity)
+//
+// - Keys that lack a clear US mapping are named "Worldx"
+//
+// - For non-printable keys, custom names are used (e.g. "F4", "Backspace",
+// etc.)
+type Key int
+
+// Keyboard keys.
 const (
 	// KeyUnknown : The unknown key.
-	KeyUnknown = -1
+	KeyUnknown Key = -1
 
 	// Printable keys.
 
-	KeySpace = 32
+	KeySpace Key = 32
 	// KeyApostrophe : "'".
-	KeyApostrophe = 39
+	KeyApostrophe Key = 39
 	// KeyComma : ",".
-	KeyComma = 44
+	KeyComma Key = 44
 	// KeyMinus : "-".
-	KeyMinus = 45
+	KeyMinus Key = 45
 	// KeyPeriod : ".".
-	KeyPeriod = 46
+	KeyPeriod Key = 46
 	// KeySlash : "/".
-	KeySlash = 47
-	Key0     = 48
-	Key1     = 49
-	Key2     = 50
-	Key3     = 51
-	Key4     = 52
-	Key5     = 53
-	Key6     = 54
-	Key7     = 55
-	Key8     = 56
-	Key9     = 57
+	KeySlash Key = 47
+	Key0     Key = 48
+	Key1     Key = 49
+	Key2     Key = 50
+	Key3     Key = 51
+	Key4     Key = 52
+	Key5     Key = 53
+	Key6     Key = 54
+	Key7     Key = 55
+	Key8     Key = 56
+	Key9     Key = 57
 	// KeySemicolon : ";".
-	KeySemicolon = 59
+	KeySemicolon Key = 59
 	// KeyEqual : "=".
-	KeyEqual = 61
-	KeyA     = 65
-	KeyB     = 66
-	KeyC     = 67
-	KeyD     = 68
-	KeyE     = 69
-	KeyF     = 70
-	KeyG     = 71
-	KeyH     = 72
-	KeyI     = 73
-	KeyJ     = 74
-	KeyK     = 75
-	KeyL     = 76
-	KeyM     = 77
-	KeyN     = 78
-	KeyO     = 79
-	KeyP     = 80
-	KeyQ     = 81
-	KeyR     = 82
-	KeyS     = 83
-	KeyT     = 84
-	KeyU     = 85
-	KeyV     = 86
-	KeyW     = 87
-	KeyX     = 88
-	KeyY     = 89
-	KeyZ     = 90
+	KeyEqual Key = 61
+	KeyA     Key = 65
+	KeyB     Key = 66
+	KeyC     Key = 67
+	KeyD     Key = 68
+	KeyE     Key = 69
+	KeyF     Key = 70
+	KeyG     Key = 71
+	KeyH     Key = 72
+	KeyI     Key = 73
+	KeyJ     Key = 74
+	KeyK     Key = 75
+	KeyL     Key = 76
+	KeyM     Key = 77
+	KeyN     Key = 78
+	KeyO     Key = 79
+	KeyP     Key = 80
+	KeyQ     Key = 81
+	KeyR     Key = 82
+	KeyS     Key = 83
+	KeyT     Key = 84
+	KeyU     Key = 85
+	KeyV     Key = 86
+	KeyW     Key = 87
+	KeyX     Key = 88
+	KeyY     Key = 89
+	KeyZ     Key = 90
 	// KeyLeftBracket : "[".
-	KeyLeftBracket = 91
+	KeyLeftBracket Key = 91
 	// KeyBackslash : "\".
-	KeyBackslash = 92
+	KeyBackslash Key = 92
 	// KeyRightBracket : "]".
-	KeyRightBracket = 93
+	KeyRightBracket Key = 93
 	// KeyGraveAccent : "`".
-	KeyGraveAccent = 96
+	KeyGraveAccent Key = 96
 	// KeyWorld1 : non-US #1.
-	KeyWorld1 = 161
+	KeyWorld1 Key = 161
 	// KeyWorld2 : non-US #2.
-	KeyWorld2 = 162
+	KeyWorld2 Key = 162
 
 	// Function keys.
 
-	KeyEscape       = 256
-	KeyEnter        = 257
-	KeyTab          = 258
-	KeyBackspace    = 259
-	KeyInsert       = 260
-	KeyDelete       = 261
-	KeyRight        = 262
-	KeyLeft         = 263
-	KeyDown         = 264
-	KeyUp           = 265
-	KeyPageUp       = 266
-	KeyPageDown     = 267
-	KeyHome         = 268
-	KeyEnd          = 269
-	KeyCapsLock     = 280
-	KeyScrollLock   = 281
-	KeyNumLock      = 282
-	KeyPrintScreen  = 283
-	KeyPause        = 284
-	KeyF1           = 290
-	KeyF2           = 291
-	KeyF3           = 292
-	KeyF4           = 293
-	KeyF5           = 294
-	KeyF6           = 295
-	KeyF7           = 296
-	KeyF8           = 297
-	KeyF9           = 298
-	KeyF10          = 299
-	KeyF11          = 300
-	KeyF12          = 301
-	KeyF13          = 302
-	KeyF14          = 303
-	KeyF15          = 304
-	KeyF16          = 305
-	KeyF17          = 306
-	KeyF18          = 307
-	KeyF19          = 308
-	KeyF20          = 309
-	KeyF21          = 310
-	KeyF22          = 311
-	KeyF23          = 312
-	KeyF24          = 313
-	KeyF25          = 314
-	KeyKp0          = 320
-	KeyKp1          = 321
-	KeyKp2          = 322
-	KeyKp3          = 323
-	KeyKp4          = 324
-	KeyKp5          = 325
-	KeyKp6          = 326
-	KeyKp7          = 327
-	KeyKp8          = 328
-	KeyKp9          = 329
-	KeyKpDecimal    = 330
-	KeyKpDivide     = 331
-	KeyKpMultiply   = 332
-	KeyKpSubtract   = 333
-	KeyKpAdd        = 334
-	KeyKpEnter      = 335
-	KeyKpEqual      = 336
-	KeyLeftShift    = 340
-	KeyLeftControl  = 341
-	KeyLeftAlt      = 342
-	KeyLeftSuper    = 343
-	KeyRightShift   = 344
-	KeyRightControl = 345
-	KeyRightAlt     = 346
-	KeyRightSuper   = 347
-	KeyMenu         = 348
+	KeyEscape       Key = 256
+	KeyEnter        Key = 257
+	KeyTab          Key = 258
+	KeyBackspace    Key = 259
+	KeyInsert       Key = 260
+	KeyDelete       Key = 261
+	KeyRight        Key = 262
+	KeyLeft         Key = 263
+	KeyDown         Key = 264
+	KeyUp           Key = 265
+	KeyPageUp       Key = 266
+	KeyPageDown     Key = 267
+	KeyHome         Key = 268
+	KeyEnd          Key = 269
+	KeyCapsLock     Key = 280
+	KeyScrollLock   Key = 281
+	KeyNumLock      Key = 282
+	KeyPrintScreen  Key = 283
+	KeyPause        Key = 284
+	KeyF1           Key = 290
+	KeyF2           Key = 291
+	KeyF3           Key = 292
+	KeyF4           Key = 293
+	KeyF5           Key = 294
+	KeyF6           Key = 295
+	KeyF7           Key = 296
+	KeyF8           Key = 297
+	KeyF9           Key = 298
+	KeyF10          Key = 299
+	KeyF11          Key = 300
+	KeyF12          Key = 301
+	KeyF13          Key = 302
+	KeyF14          Key = 303
+	KeyF15          Key = 304
+	KeyF16          Key = 305
+	KeyF17          Key = 306
+	KeyF18          Key = 307
+	KeyF19          Key = 308
+	KeyF20          Key = 309
+	KeyF21          Key = 310
+	KeyF22          Key = 311
+	KeyF23          Key = 312
+	KeyF24          Key = 313
+	KeyF25          Key = 314
+	KeyKp0          Key = 320
+	KeyKp1          Key = 321
+	KeyKp2          Key = 322
+	KeyKp3          Key = 323
+	KeyKp4          Key = 324
+	KeyKp5          Key = 325
+	KeyKp6          Key = 326
+	KeyKp7          Key = 327
+	KeyKp8          Key = 328
+	KeyKp9          Key = 329
+	KeyKpDecimal    Key = 330
+	KeyKpDivide     Key = 331
+	KeyKpMultiply   Key = 332
+	KeyKpSubtract   Key = 333
+	KeyKpAdd        Key = 334
+	KeyKpEnter      Key = 335
+	KeyKpEqual      Key = 336
+	KeyLeftShift    Key = 340
+	KeyLeftControl  Key = 341
+	KeyLeftAlt      Key = 342
+	KeyLeftSuper    Key = 343
+	KeyRightShift   Key = 344
+	KeyRightControl Key = 345
+	KeyRightAlt     Key = 346
+	KeyRightSuper   Key = 347
+	KeyMenu         Key = 348
 
-	KeyLast = KeyMenu
+	KeyLast Key = KeyMenu
 )
 
-// Modifier key flags.
+// ModifierFlag is a modifier key flag.
+type ModifierFlag int
+
 const (
 	// ModShift : If this bit is set one or more Shift keys were held down.
-	ModShift = 0x0001
+	ModShift ModifierFlag = 0x0001
 	// ModControl : If this bit is set one or more Control keys were held down.
-	ModControl = 0x0002
+	ModControl ModifierFlag = 0x0002
 	// ModAlt : If this bit is set one or more Alt keys were held down.
-	ModAlt = 0x0004
+	ModAlt ModifierFlag = 0x0004
 	// ModSuper : If this bit is set one or more Super keys were held down.
-	ModSuper = 0x0008
+	ModSuper ModifierFlag = 0x0008
 )
+
+// Button is a mouse button.
+type Button int
 
 // Mouse buttons.
 const (
-	MouseButton1      = 0
-	MouseButton2      = 1
-	MouseButton3      = 2
-	MouseButton4      = 3
-	MouseButton5      = 4
-	MouseButton6      = 5
-	MouseButton7      = 6
-	MouseButton8      = 7
-	MouseButtonLast   = MouseButton8
-	MouseButtonLeft   = MouseButton1
-	MouseButtonRight  = MouseButton2
-	MouseButtonMiddle = MouseButton3
+	MouseButton1      Button = 0
+	MouseButton2      Button = 1
+	MouseButton3      Button = 2
+	MouseButton4      Button = 3
+	MouseButton5      Button = 4
+	MouseButton6      Button = 5
+	MouseButton7      Button = 6
+	MouseButton8      Button = 7
+	MouseButtonLast   Button = MouseButton8
+	MouseButtonLeft   Button = MouseButton1
+	MouseButtonRight  Button = MouseButton2
+	MouseButtonMiddle Button = MouseButton3
 )
+
+// Joystick is a joystick.
+type Joystick int
 
 // Joysticks.
 const (
-	Joystick1    = 0
-	Joystick2    = 1
-	Joystick3    = 2
-	Joystick4    = 3
-	Joystick5    = 4
-	Joystick6    = 5
-	Joystick7    = 6
-	Joystick8    = 7
-	Joystick9    = 8
-	Joystick10   = 9
-	Joystick11   = 10
-	Joystick12   = 11
-	Joystick13   = 12
-	Joystick14   = 13
-	Joystick15   = 14
-	Joystick16   = 15
-	JoystickLast = Joystick16
+	Joystick1    Joystick = 0
+	Joystick2    Joystick = 1
+	Joystick3    Joystick = 2
+	Joystick4    Joystick = 3
+	Joystick5    Joystick = 4
+	Joystick6    Joystick = 5
+	Joystick7    Joystick = 6
+	Joystick8    Joystick = 7
+	Joystick9    Joystick = 8
+	Joystick10   Joystick = 9
+	Joystick11   Joystick = 10
+	Joystick12   Joystick = 11
+	Joystick13   Joystick = 12
+	Joystick14   Joystick = 13
+	Joystick15   Joystick = 14
+	Joystick16   Joystick = 15
+	JoystickLast Joystick = Joystick16
 )
 
-// Error codes.
+// Error represents an error code.
+type Error int
+
 const (
 	// NotInitialized : GLFW has not been initialized.
 	//
 	// This occurs if a GLFW function was called that must not be called unless
 	// the library is initialized.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is an application programmer error. Initialize GLFW before calling
 	// any function that requires initialization.
-	NotInitialized = 0x00010001
+	NotInitialized Error = 0x00010001
 	// NoCurrentContext : No context is current for this thread.
 	//
 	// This occurs if a GLFW function was called that needs and operates on the
 	// current OpenGL or OpenGL ES contest but no context is current on the
 	// calling thread. One such function is SwapInterval().
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is an application programmer error. Ensure a context is current
 	// before calling functions that require a current context.
-	NoCurrentContext = 0x00010002
+	NoCurrentContext Error = 0x00010002
 	// InvalidEnum : One or the arguments to the function was an invalid enum
 	// value, for example requesting RedBits with GetWindowAttrib.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is an application programmer error. Fix the offending call.
-	InvalidEnum = 0x00010003
+	InvalidEnum Error = 0x00010003
 	// InvalidValue : One of the arguments to the function was an invalid value,
 	// for example requesting a non-existent OpenGL or OpenGL ES version like
 	// 2.7.
@@ -285,22 +305,22 @@ const (
 	// Requesting a valid but unavailable OpenGL or OpenGL ES version will
 	// instead result in a VersionUnavailable error.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is an application programmer error. Fix the offending call.
-	InvalidValue = 0x00010004
+	InvalidValue Error = 0x00010004
 	// OutOfMemory : A memory allocation failed.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is a bug in GLFW3, GLFW or the underlying operating system. Report
 	// the bug to our issue tracker (https://github.com/paperui/glfw3/issues) or
 	// GLFW's (https://github.com/glfw/glfw/issues).
-	OutOfMemory = 0x00010005
+	OutOfMemory Error = 0x00010005
 	// APIUnavailable : GLFW could not find support for the requested API on the
 	// system.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// Thhe installed graphics driver does not support the requested API, or
 	// does not support it via the chosen context creation backend. Below are a
@@ -311,12 +331,12 @@ const (
 	// via a WGL or GLX extension. OS X does not provide OpenGL ES at all. The
 	// Mesa EGL, OpenGL and OpenGL ES libraries do not interface with the
 	// Nvidia binary driver. Older graphics drivers do not support Vulkan.
-	APIUnavailable = 0x00010006
+	APIUnavailable Error = 0x00010006
 	// VersionUnavailable : The requested OpenGL or OpenGL ES version (including
 	// any requested context or framebuffer hints) is not available on this
 	// machine.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// The machine does not support your requirements. If your application is
 	// sufficiently flexible, downgrade your requirements and try again.
@@ -327,17 +347,17 @@ const (
 	// 5.0 comes out before the 4.x series gets that far, also fail with this
 	// error and not InvalidValue, because GLFW cannot know what future versions
 	// will exist.
-	VersionUnavailable = 0x00010007
+	VersionUnavailable Error = 0x00010007
 	// PlatformError : A platform-specific error occurred that does not match
 	// any of the more specific categories.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is a bug or configuration error in GLFW3, GLFW, the underlying
 	// operating system or its drivers, or a lack of required resources. Report
 	// the issue to our issue tracker (https://github.com/paperui/glfw3/issues)
 	// or GLFW's (https://github.com/glfw/glfw/issues).
-	PlatformError = 0x00010008
+	PlatformError Error = 0x00010008
 	// FormatUnavailable : The requested format is not supported or available.
 	//
 	// If emitted during window creation, the requested pixel format is not
@@ -346,7 +366,7 @@ const (
 	// If emitted when querying the clipboard, the contents of the clipboard
 	// could not be converted to the requested format.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// If emmited during window creation, one or more hard constraints
 	// (http://www.glfw.org/docs/latest/window_guide.html#window_hints_hard) did
@@ -357,14 +377,14 @@ const (
 	//
 	// If emitted when querying the clipboard, ignore the error or report it to
 	// the user, as appropriate.
-	FormatUnavailable = 0x00010009
+	FormatUnavailable Error = 0x00010009
 	// NoWindowContext : A window that does not have an OpenGL or OpenGL ES was
 	// passed to a function that requires it to have one.
 	//
-	// Analysis:
+	// Analysis
 	//
 	// This is an application programmer error. Fix the offending call.
-	NoWindowContext = 0x0001000A
+	NoWindowContext Error = 0x0001000A
 )
 
 // Constants.
@@ -419,9 +439,12 @@ const (
 	OpenGLCoreProfile   = 0x00032001
 	OpenGLCompatProfile = 0x00032002
 
-	Cursor             = 0x00033001
-	StickyKeys         = 0x00033002
-	StickyMouseButtons = 0x00033003
+	// CursorMode corresponds to GLFW_CURSOR.
+	CursorMode = 0x00033001
+	// StickyKeysMode corresponds to GLFW_STICKY_KEYS.
+	StickyKeysMode = 0x00033002
+	// StickyMouseButtonsMode corresponds to GLFW_STICKY_MOUSE_BUTTONS.
+	StickyMouseButtonsMode = 0x00033003
 
 	CursorNormal   = 0x00034001
 	CursorHidden   = 0x00034002
@@ -440,18 +463,20 @@ const (
 	DontCare = -1
 )
 
-// Standard cursor shapes.
+// CursorShape represent a standard cursor shape.
+type CursorShape int
+
 const (
 	// ArrowCursor : The regular arrow cursor shape.
-	ArrowCursor = 0x00036001
+	ArrowCursor CursorShape = 0x00036001
 	// IBeamCursor : The text input I-beam cursor shape.
-	IBeamCursor = 0x00036002
+	IBeamCursor CursorShape = 0x00036002
 	// CrosshairCursor : The crosshair shape.
-	CrosshairCursor = 0x00036003
+	CrosshairCursor CursorShape = 0x00036003
 	// HandCursor : The hand shape.
-	HandCursor = 0x00036004
+	HandCursor CursorShape = 0x00036004
 	// HResizeCursor : The horizontal resize arrow shape.
-	HResizeCursor = 0x00036005
+	HResizeCursor CursorShape = 0x00036005
 	// VResizeCursor : The vertical resize arrow shape.
-	VResizeCursor = 0x00036006
+	VResizeCursor CursorShape = 0x00036006
 )
