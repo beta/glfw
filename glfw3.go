@@ -639,8 +639,8 @@ type MonitorCallback func(monitor *Monitor, event int)
 // Connected or Disconnected.
 type JoystickCallback func(joy Joystick, event int)
 
-// VidMode describes a single video mode.
-type VidMode struct {
+// VideoMode describes a single video mode.
+type VideoMode struct {
 	// Width : The width, in screen coordinates, of the video mode.
 	Width int
 	// Height : The height, in screen coordinates, of the video mode.
@@ -929,4 +929,130 @@ func _monitorCallback(cMonitor *C.GLFWmonitor, cEvent C.int) {
 		event := int(cEvent)
 		currentContext.monitorCallback(monitor, event)
 	}
+}
+
+// GetVideoModes returns an array of all video modes supported by monitor, or
+// nil if an error occurred. The returned array is sorted in ascending order,
+// first by color bit depth (the sum of all channel depths) and then by
+// resolution area (the product of width and height).
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetVideoModes() []*VideoMode {
+	var cCount C.int
+	cModes := C.glfwGetVideoModes((*C.GLFWmonitor)(monitor), &cCount)
+	if unsafe.Pointer(cModes) != C.NULL {
+		count := int(cCount)
+		videoModes := make([]*VideoMode, 0, count)
+		for i := 0; i < count; i++ {
+			offset := unsafe.Sizeof(*cModes) * uintptr(i)
+			cMode := (*C.GLFWvidmode)(unsafe.Pointer(uintptr(unsafe.Pointer(cModes)) + offset))
+			videoModes = append(videoModes, &VideoMode{
+				Width:       int(cMode.width),
+				Height:      int(cMode.height),
+				RedBits:     int(cMode.redBits),
+				GreenBits:   int(cMode.greenBits),
+				BlueBits:    int(cMode.blueBits),
+				RefreshRate: int(cMode.refreshRate),
+			})
+		}
+		return videoModes
+	}
+	return nil
+}
+
+// GetVideoMode returns the current video mode of monitor, or nil if an error
+// occurred. If you have created a full screen window for monitor, the return
+// value will depend on whether that window is iconified.
+//
+// Returns nil if an error occurred.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetVideoMode() *VideoMode {
+	cMode := C.glfwGetVideoMode((*C.GLFWmonitor)(monitor))
+	if unsafe.Pointer(cMode) != C.NULL {
+		return &VideoMode{
+			Width:       int(cMode.width),
+			Height:      int(cMode.height),
+			RedBits:     int(cMode.redBits),
+			GreenBits:   int(cMode.greenBits),
+			BlueBits:    int(cMode.blueBits),
+			RefreshRate: int(cMode.refreshRate),
+		}
+	}
+	return nil
+}
+
+// SetGamma generates a 256-element gamma ramp from the specified exponent and
+// then calls Monitor.SetGammaRamp() with it. The value must be a finite number
+// greater than zero.
+//
+// Possible errors include NotInitialized, InvalidValue and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) SetGamma(gamma float32) {
+	C.glfwSetGamma((*C.GLFWmonitor)(monitor), C.float(gamma))
+}
+
+// GetGammaRamp returns the current gamma ramp for monitor, or nil if an error
+// occurred.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetGammaRamp() *GammaRamp {
+	cRamp := C.glfwGetGammaRamp((*C.GLFWmonitor)(monitor))
+	if unsafe.Pointer(cRamp) != C.NULL {
+		size := int(cRamp.size)
+		ramp := &GammaRamp{
+			Red:   make([]uint16, 0, size),
+			Green: make([]uint16, 0, size),
+			Blue:  make([]uint16, 0, size),
+		}
+		for i := 0; i < size; i++ {
+			offset := unsafe.Sizeof(*cRamp.red) * uintptr(i)
+			cRed := (*C.ushort)(unsafe.Pointer(uintptr(unsafe.Pointer(cRamp.red)) + offset))
+			cGreen := (*C.ushort)(unsafe.Pointer(uintptr(unsafe.Pointer(cRamp.red)) + offset))
+			cBlue := (*C.ushort)(unsafe.Pointer(uintptr(unsafe.Pointer(cRamp.red)) + offset))
+			ramp.Red = append(ramp.Red, uint16(*cRed))
+			ramp.Green = append(ramp.Green, uint16(*cGreen))
+			ramp.Blue = append(ramp.Blue, uint16(*cBlue))
+		}
+		return ramp
+	}
+	return nil
+}
+
+// SetGammaRamp sets the current gamma ramp for monitor. The original gamma ramp
+// for monitor is saved by GLFW the first time this function is called and is
+// restored by Context.Terminate().
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// Gamma ramp sizes other than 256 are not supported by all platforms or
+// graphics hardware.
+//
+// On Windows, the gamma ramp size must be 256.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) SetGammaRamp(ramp *GammaRamp) {
+	size := len(ramp.Red)
+	cRed := make([]C.ushort, 0, size)
+	cGreen := make([]C.ushort, 0, size)
+	cBlue := make([]C.ushort, 0, size)
+	for i := 0; i < int(size); i++ {
+		cRed = append(cRed, C.ushort(ramp.Red[i]))
+		cGreen = append(cGreen, C.ushort(ramp.Green[i]))
+		cBlue = append(cBlue, C.ushort(ramp.Blue[i]))
+	}
+	cRamp := C.GLFWgammaramp{
+		red:   &cRed[0],
+		green: &cGreen[0],
+		blue:  &cBlue[0],
+		size:  C.uint(size),
+	}
+	C.glfwSetGammaRamp((*C.GLFWmonitor)(monitor), &cRamp)
 }
