@@ -7,6 +7,7 @@ package glfw3
 
 /*
 #cgo pkg-config: glfw3
+#include <stdlib.h>
 #include <GLFW/glfw3.h>
 
 // Gateway for error callback function in Go.
@@ -421,80 +422,123 @@ const (
 	NoWindowContext Error = 0x0001000A
 )
 
+// Hint is a bit field for creating windows and context.
+type Hint int
+
+// Hints.
+const (
+	// Window related hints.
+	Focused     Hint = 0x00020001
+	Iconified   Hint = 0x00020002
+	Resizable   Hint = 0x00020003
+	Visible     Hint = 0x00020004
+	Decorated   Hint = 0x00020005
+	AutoIconify Hint = 0x00020006
+	Floating    Hint = 0x00020007
+	Maximized   Hint = 0x00020008
+
+	// Framebuffer related hints.
+	RedBits        Hint = 0x00021001
+	GreenBits      Hint = 0x00021002
+	BlueBits       Hint = 0x00021003
+	AlphaBits      Hint = 0x00021004
+	DepthBits      Hint = 0x00021005
+	StencilBits    Hint = 0x00021006
+	AccumRedBits   Hint = 0x00021007
+	AccumGreenBits Hint = 0x00021008
+	AccumBlueBits  Hint = 0x00021009
+	AccumAlphaBits Hint = 0x0002100A
+	AuxBuffers     Hint = 0x0002100B
+	Stereo         Hint = 0x0002100C
+	Samples        Hint = 0x0002100D
+	SRGBCapable    Hint = 0x0002100E
+	Doublebuffer   Hint = 0x00021010
+
+	// Monitor related hints.
+	RefreshRate Hint = 0x0002100F
+
+	// Context related hints.
+	ClientAPI              Hint = 0x00022001
+	ContextCreationAPI     Hint = 0x0002200B
+	ContextVersionMajor    Hint = 0x00022002
+	ContextVersionMinor    Hint = 0x00022003
+	ContextRevision        Hint = 0x00022004
+	ContextRobustness      Hint = 0x00022005
+	OpenGLForwardCompat    Hint = 0x00022006
+	OpenGLDebugContext     Hint = 0x00022007
+	OpenGLProfile          Hint = 0x00022008
+	ContextReleaseBehavior Hint = 0x00022009
+	ContextNoError         Hint = 0x0002200A
+)
+
+// HintValue is the value for a hint.
+type HintValue int
+
+// Hint values.
+const (
+	// Common values.
+	DontCare HintValue = -1
+
+	// Values for ClientAPI.
+	NoAPI       HintValue = 0
+	OpenGLAPI   HintValue = 0x00030001
+	OpenGLESAPI HintValue = 0x00030002
+
+	// Values for ContextCreationAPI.
+	NativeContextAPI HintValue = 0x00036001
+	EGLContextAPI    HintValue = 0x00036002
+
+	// Values for OpenGLProfile.
+	OpenGLAnyProfile    HintValue = 0
+	OpenGLCoreProfile   HintValue = 0x00032001
+	OpenGLCompatProfile HintValue = 0x00032002
+
+	// Values for ContextRobustness.
+	NoRobustness        HintValue = 0
+	NoResetNotification HintValue = 0x00031001
+	LoseContextOnReset  HintValue = 0x00031002
+
+	// Values for ContextReleaseBehavior.
+	AnyReleaseBehavior   HintValue = 0
+	ReleaseBehaviorFlush HintValue = 0x00035001
+	ReleaseBehaviorNone  HintValue = 0x00035002
+)
+
+// InputMode specifies the input mode.
+type InputMode int
+
+// Input modes.
+const (
+	CursorMode             = 0x00033001
+	StickyKeysMode         = 0x00033002
+	StickyMouseButtonsMode = 0x00033003
+)
+
+// CursorModeValue specifies mode of the cursor when the input mode is
+// CursorMode.
+type CursorModeValue int
+
+// Cursor mode values.
+const (
+	CursorNormal   CursorModeValue = 0x00034001
+	CursorHidden   CursorModeValue = 0x00034002
+	CursorDisabled CursorModeValue = 0x00034003
+)
+
+// ConnectionEvent represents whether a device is connected or disconnected
+// from the system.
+type ConnectionEvent int
+
+// Connection events.
+const (
+	Connected    ConnectionEvent = 0x00040001
+	Disconnected ConnectionEvent = 0x00040002
+)
+
 // Constants.
 const (
-	Focused     = 0x00020001
-	Iconified   = 0x00020002
-	Resizable   = 0x00020003
-	Visible     = 0x00020004
-	Decorated   = 0x00020005
-	AutoIconify = 0x00020006
-	Floating    = 0x00020007
-	Maximized   = 0x00020008
-
-	RedBits        = 0x00021001
-	GreenBits      = 0x00021002
-	BlueBits       = 0x00021003
-	AlphaBits      = 0x00021004
-	DepthBits      = 0x00021005
-	StencilBits    = 0x00021006
-	AccumRedBits   = 0x00021007
-	AccumGreenBits = 0x00021008
-	AccumBlueBits  = 0x00021009
-	AccumAlphaBits = 0x0002100A
-	AuxBuffers     = 0x0002100B
-	Stereo         = 0x0002100C
-	Samples        = 0x0002100D
-	SRGBCapable    = 0x0002100E
-	RefreshRate    = 0x0002100F
-	Doublebuffer   = 0x00021010
-
-	ClientAPI              = 0x00022001
-	ContextVersionMajor    = 0x00022002
-	ContextVersionMinor    = 0x00022003
-	ContextRevision        = 0x00022004
-	ContextRobustness      = 0x00022005
-	OpenGLForwardCompat    = 0x00022006
-	OpenGLDebugContext     = 0x00022007
-	OpenGLProfile          = 0x00022008
-	ContextReleaseBehavior = 0x00022009
-	ContextNoError         = 0x0002200A
-	ContextCreationAPI     = 0x0002200B
-
-	NoAPI       = 0
-	OpenGLAPI   = 0x00030001
-	OpenGLESAPI = 0x00030002
-
-	NoRobustness        = 0
-	NoResetNotification = 0x00031001
-	LoseContextOnReset  = 0x00031002
-
-	OpenGLAnyProfile    = 0
-	OpenGLCoreProfile   = 0x00032001
-	OpenGLCompatProfile = 0x00032002
-
-	// CursorMode corresponds to GLFW_CURSOR.
-	CursorMode = 0x00033001
-	// StickyKeysMode corresponds to GLFW_STICKY_KEYS.
-	StickyKeysMode = 0x00033002
-	// StickyMouseButtonsMode corresponds to GLFW_STICKY_MOUSE_BUTTONS.
-	StickyMouseButtonsMode = 0x00033003
-
-	CursorNormal   = 0x00034001
-	CursorHidden   = 0x00034002
-	CursorDisabled = 0x00034003
-
-	AnyReleaseBehavior   = 0
-	ReleaseBehaviorFlush = 0x00035001
-	ReleaseBehaviorNone  = 0x00035002
-
-	NativeContextAPI = 0x00036001
-	EGLContextAPI    = 0x00036002
-
-	Connected    = 0x00040001
-	Disconnected = 0x00040002
-
-	DontCare = -1
+	True  = 1
+	False = 0
 )
 
 // CursorShape represent a standard cursor shape.
@@ -1055,4 +1099,212 @@ func (monitor *Monitor) SetGammaRamp(ramp *GammaRamp) {
 		size:  C.uint(size),
 	}
 	C.glfwSetGammaRamp((*C.GLFWmonitor)(monitor), &cRamp)
+}
+
+// DefaultWindowHints resets all window hints to their default values.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) DefaultWindowHints() {
+	C.glfwDefaultWindowHints()
+}
+
+// WindowHint sets the specified window hint to the desired value.
+//
+// This function sets hints for the next call to Context.CreateWindow(). The
+// hints, once set, retain their values until changed by a call to
+// Context.WindowHint() or Context.DefaultWindowHint(), or until the library is
+// terminated.
+//
+// This function does not check whether the specified hint values are valid. If
+// you set hints to invalid values this will instead be reported by the next
+// call to Context.CreateWindow().
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (c *Context) WindowHint(hint Hint, value HintValue) {
+	C.glfwWindowHint(C.int(hint), C.int(value))
+}
+
+// WindowHintBool is a shorthand for setting window hints with boolean values.
+func (c *Context) WindowHintBool(hint Hint, value bool) {
+	if value {
+		c.WindowHint(hint, HintValue(True))
+	} else {
+		c.WindowHint(hint, HintValue(False))
+	}
+}
+
+// CreateWindow creates a window and its associated context.
+//
+// This function creates a window and its associated OpenGL or OpenGL ES
+// context. Most of the options controlling how the window and its context
+// should be created are specified with window hints
+// (http://www.glfw.org/docs/latest/window_guide.html#window_hints).
+//
+// Successful creation does not change which context is current. Before you can
+// use the newly created context, you need to make it current
+// (http://www.glfw.org/docs/latest/context_guide.html#context_current). For
+// information about the share parameter, see Context object sharing
+// (http://www.glfw.org/docs/latest/context_guide.html#context_sharing).
+//
+// The created window, framebuffer and context may differ from what you
+// requested, as not all parameters and hints are hard constraints
+// (http://www.glfw.org/docs/latest/window_guide.html#window_hints_hard). This
+// includes the size of the window, especially for full screen windows. To query
+// the actual attributes of the created window, framebuffer and context, see
+// Window.GetAttrib(), Window.GetSize() and Window.GetFramebufferSize().
+//
+// To create a full screen window, you need to specify the monitor the window
+// will cover. If no monitor is specified, the window will be windowed mode.
+// Unless you have a way for the user to choose a specific monitor, it is
+// recommended that you pick the primary monitor. For more information on how
+// to query connected monitors, see Retrieving monitors
+// (http://www.glfw.org/docs/latest/monitor_guide.html#monitor_monitors).
+//
+// For full screen windows, the specified size becomes the resolution of the
+// window's desired video mode. As long as a full screen window is not
+// iconified, the supported video mode most closely matching the desired video
+// mode is set for the specified monitor. For more information about full screen
+// windows, including the creation of so called windowed full screen or
+// borderless full screen windows, see "Windowed full screen" windows
+// (http://www.glfw.org/docs/latest/window_guide.html#window_windowed_full_screen).
+//
+// Once you have created the window, you can switch it between windowed and full
+// screen mode with Window.SetMonitor(). If the window has an OpenGL or OpenGL
+// ES context, it will be unaffected.
+//
+// By default, newly created windows use the placement recommended by the window
+// system. To create the window at a specific position, make it initially
+// invisible using the Visible window hint, set its position
+// (http://www.glfw.org/docs/latest/window_guide.html#window_pos) and then show
+// (http://www.glfw.org/docs/latest/window_guide.html#window_hide) it.
+//
+// As long as at least one full screen window is not iconified, the screensaver
+// is prohibited from starting.
+//
+// Window systems put limits on window sizes. Very large or very small window
+// dimensions may be overridden by the window system on creation. Check the
+// actual size (http://www.glfw.org/docs/latest/window_guide.html#window_size)
+// after creation.
+//
+// The swap interval
+// (http://www.glfw.org/docs/latest/window_guide.html#buffer_swap) is not set
+// during window creation and the initial value may vary depending on driver
+// settings and defaults.
+//
+// Returns the handle of the created window, or nil if an error occurred.
+//
+// Possible errors include NotInitialized, InvalidEnum, InvalidValue,
+// APIUnavailable, VersionUnavailable, FormatUnavailable and PlatformError.
+//
+// On Windows, window creation will fail if the Microsoft GDI software OpenGL
+// implementation is the only one available.
+//
+// On Windows, if the executable has an icon resource named GLFW_ICON, it will
+// be set as the initial icon for the window. If no such icon is present, the
+// IDI_WINLOGO icon will be used instead. To set a different icon, see
+// Window.SetIcon().
+//
+// On Windows, the context to share resources with must not be current on any
+// other thread.
+//
+// On OS X, the GLFW window has no icon, as it is not a document window, but the
+// dock icon will be the same as the application bundle's icon. For more
+// information on bundles, see the Bundle Programming Guide
+// (https://developer.apple.com/library/mac/documentation/CoreFoundation/Conceptual/CFBundles/)
+// in the Mac Developer Library.
+//
+// On OS X, the first time a window is created the menu bar is populated with
+// common commands like Hide, Quit and About. The About entry opens a minimal
+// about dialog with information from the application's bundle. The menu bar can
+// be disabled with a compile-time option
+// (http://www.glfw.org/docs/latest/compile_guide.html#compile_options_osx).
+//
+// On OS X 10.10 and later the window frame will not be rendered at full
+// resolution on Retina displays unless the NSHighResolutionCapable key is
+// enabled in the application bundle's Info.plist. For more information, see
+// High Resolution Guidelines
+// (https://developer.apple.com/library/mac/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/Explained/Explained.html)
+// for OS X in the Mac Developer Library. The GLFW test and example programs use
+// a custom Info.plist template for this, which can be found as
+// CMake/MacOSXBundleInfo.plist.in in the source tree.
+//
+// On X11, some window managers will not respect the placement of initially
+// hidden windows.
+//
+// On X11, due to the asynchronous nature of X11, it may take a moment for a
+// window to reach its requested state. This means you may not be able to query
+// the final size, position or other attributes directly after window creation.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (c *Context) CreateWindow(width, height int, title string, monitor *Monitor, share *Window) *Window {
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+	cWindow := C.glfwCreateWindow(C.int(width), C.int(height), cTitle, (*C.GLFWmonitor)(monitor), (*C.GLFWwindow)(share))
+	if unsafe.Pointer(cWindow) != C.NULL {
+		return (*Window)(cWindow)
+	}
+	return nil
+}
+
+// Destroy destroys win and its context. On calling this function, no further
+// callbacks will be called for that window.
+//
+// If the context of win is current on the main thread, it is detached before
+// being destroyed.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// The context of win must not be current on any other thread when this function
+// is called.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (win *Window) Destroy() {
+	C.glfwDestroyWindow((*C.GLFWwindow)(win))
+}
+
+// ShouldClose returns the value of the close flag of win.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (win *Window) ShouldClose() bool {
+	return int(C.glfwWindowShouldClose((*C.GLFWwindow)(win))) != 0
+}
+
+// SetShouldClose sets the value of the close flag of win. This can be used to
+// override the user's attempt to close the window, or to signal that it should
+// be closed.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (win *Window) SetShouldClose(value bool) {
+	var cValue C.int
+	if value {
+		cValue = 1
+	}
+	C.glfwSetWindowShouldClose((*C.GLFWwindow)(win), cValue)
+}
+
+// SetTitle sets the window title, encoded as UTF-8, of win.
+//
+// Possible errors include NotInitialized or PlatformError.
+//
+// On OS X, the window title will not be updated until the next time you process
+// events.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetTitle(title string) {
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+
+	C.glfwSetWindowTitle((*C.GLFWwindow)(win), cTitle)
 }
