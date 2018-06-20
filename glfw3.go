@@ -480,3 +480,170 @@ const (
 	// VResizeCursor : The vertical resize arrow shape.
 	VResizeCursor CursorShape = 0x00036006
 )
+
+// Monitor is an opaque monitor object.
+type Monitor struct {
+	cMonitor *C.GLFWmonitor
+}
+
+// Window is an opaque window object.
+type Window struct {
+	cWindow *C.GLFWwindow
+}
+
+// Cursor is an opaque cursor object.
+type Cursor struct {
+	cCursor *C.GLFWcursor
+}
+
+// ErrorCallback is a function type for error callbacks.
+//
+// error is an Error, and desc is a string describing the error.
+type ErrorCallback func(error Error, desc string)
+
+// WindowPosCallback is the function type for window position callbacks.
+//
+// win is the window that was moved. x and y are the new x- and y-coordinate,
+// in screen coordinates, of the upper-left corner of the client area of the
+// window.
+type WindowPosCallback func(win *Window, x, y int)
+
+// WindowSizeCallback is the function type for window resize callbacks.
+//
+// win is the window that was resized. width and height are the new width and
+// height, in screen coordinates, of the window.
+type WindowSizeCallback func(win *Window, width, height int)
+
+// WindowCloseCallback is the function type for window close callbacks.
+//
+// win is the window that user attempted to close.
+type WindowCloseCallback func(win *Window)
+
+// WindowRefreshCallback is the function type for window content refresh
+// callbacks.
+//
+// win is the window whose content needs to be refreshed.
+type WindowRefreshCallback func(win *Window)
+
+// WindowFocusCallback is the function type for window focus/defocus callbacks.
+//
+// win is the window that gained or lost input focus. focused is true if the
+// window was given input focus, or false if it lost it.
+type WindowFocusCallback func(win *Window, focused bool)
+
+// WindowIconifyCallback is the function type for window iconify/restore
+// callbacks.
+//
+// win is the window that was iconified or restored. iconified is true if the
+// window was iconified, or false if it was restored.
+type WindowIconifyCallback func(win *Window, iconified bool)
+
+// FramebufferSizeCallback is the function type for framebuffer resize
+// callbacks.
+//
+// win is the window whose framebuffer was resized. width and height are the new
+// width and height, in pixels, of the framebuffer.
+type FramebufferSizeCallback func(win *Window, width, height int)
+
+// MouseButtonCallback is the function type for mouse button callbacks.
+//
+// win is the window that received the event. button is the mouse button that
+// was pressed or released. actoin is one of Press or Release. mods is a bit
+// field describing which modifier keys were held down.
+type MouseButtonCallback func(win *Window, button Button, action Action, mods ModifierFlag)
+
+// CursorPosCallback is the function type for cursor position callbacks.
+//
+// win is the window that received the event. x and y are the new x- and
+// y-coordinate, relative to the left/top edge of the client area.
+type CursorPosCallback func(win *Window, x, y float64)
+
+// CursorEnterCallback is the function type for cursor enter/leave callbacks.
+//
+// win is the window that received the event. entered is true if the cursor
+// entered the window's client area, or false if it left it.
+type CursorEnterCallback func(win *Window, entered bool)
+
+// ScrollCallback is the function type for scroll callbacks.
+//
+// win is the window that received the event. xOffset and yOffset are the scroll
+// offsets along the x- and y-axis.
+type ScrollCallback func(win *Window, xOffset, yOffset float64)
+
+// KeyCallback is the function type for keyboard key callbacks.
+//
+// win is the window that received the event. key is the keyboard key that was
+// pressed or released. scancode is the system-specific scancode of the key.
+// action is Press, Release or Repeat. mods is a bit field describing which
+// modifier keys were held down.
+type KeyCallback func(win *Window, key Key, scancode int, action Action, mods ModifierFlag)
+
+// CharCallback is the function type for Unicode character callbacks.
+//
+// win is the window that received the event. codepoint is the Unicode code
+// point of the character.
+type CharCallback func(win *Window, codepoint rune)
+
+// CharModsCallback is the function type for Unicode character with modifiers
+// callbacks. It is called for each input characters, regardless of what
+// modifier keys are held down.
+//
+// win is the window that received the event. codepoint is the Unicode code
+// point of the character. mods is a bit field describing which modifier keys
+// were held down.
+type CharModsCallback func(win *Window, codepoint rune, mods ModifierFlag)
+
+// DropCallback is the function type for file drop callbacks.
+//
+// win is the window that received the event. paths is the UTF-8 encoded file
+// and/or directory path names.
+type DropCallback func(win *Window, paths []string)
+
+// MonitorCallback is the function type for monitor configuration callbacks.
+//
+// monitor is the monitor that was connected or disconnected. event is one of
+// Connected or Disconnected.
+type MonitorCallback func(monitor *Monitor, event int)
+
+// JoystickCallback is the function type for joystick configuration callbacks.
+//
+// joy is the joystick that was connected or disconnected. event is one of
+// Connected or Disconnected.
+type JoystickCallback func(joy Joystick, event int)
+
+// VidMode describes a single video mode.
+type VidMode struct {
+	// Width : The width, in screen coordinates, of the video mode.
+	Width int
+	// Height : The height, in screen coordinates, of the video mode.
+	Height int
+	// RedBits : The bit depth of the red channel of the video mode.
+	RedBits int
+	// GreenBits : The bit depth of the green channel of the video mode.
+	GreenBits int
+	// BlueBits : The bit depth of the blue channel of the video mode.
+	BlueBits int
+	// RefreshRate : The refresh rate, in Hz, of the video mode.
+	RefreshRate int
+}
+
+// GammaRamp describes the gamma ramp for a monitor.
+type GammaRamp struct {
+	// Red : An array of value describing the response of the red channel.
+	Red []uint16
+	// Green : An array of value describing the response of the green channel.
+	Green []uint16
+	// Blue : An array of value describing the response of the blue channel.
+	Blue []uint16
+}
+
+// Image is the Image data.
+type Image struct {
+	// Width : The width, in pixels, of this image.
+	Width int
+	// Height : The height, in pixels, of this image.
+	Height int
+	// Pixels : The pixel data of this image, arranged left-to-right,
+	// top-to-bottom.
+	Pixels []uint8
+}
