@@ -647,3 +647,89 @@ type Image struct {
 	// top-to-bottom.
 	Pixels []uint8
 }
+
+// Init initializes the GLFW library.
+//
+// This function initializes the GLFW library. Before most GLFW functions can be
+// used, GLFW must be initialized, and before an application terminates GLFW
+// should be terminated in order to free any resources allocated during or
+// after initialization.
+//
+// If this function fails, it calls Terminate() before returning. If it
+// succeeds, you should call Terminate() before the application exits.
+//
+// Additional calls to this function after successful initialization but before
+// termination will return true immediately.
+//
+// Returns true if successful, or false if an error occurred. Possible errors
+// include PlatformError.
+//
+// On OS X this function will change the current directory of the application to
+// the Contents/Resources subdirectory of the application's bundle, if present.
+// This can be disabled with a compile-time option
+// (http://www.glfw.org/docs/latest/compile_guide.html#compile_options_osx).
+//
+// This function must only be called from the main thread.
+func Init() bool {
+	return int(C.glfwInit()) == 1
+}
+
+// Terminate terminates the GLFW library.
+//
+// This function destroys all remaining windows and cursors, restores any
+// modified gamma ramps and frees any other allocated resources. Once this
+// function is called, you must again call Init() successfully before you will
+// be able to use most GLFW functions.
+//
+// If GLFW has been successfully initialized, this function should be called
+// before the application exits. If initialization fails, there is no need to
+// call this function, as it is called by Init() before it returns failure.
+//
+// Possible errors include PlatformError.
+//
+// This function may be called before Init().
+//
+// The contexts of any remaining windows must not be current on any other thread
+// when this function is called.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func Terminate() {
+	C.glfwTerminate()
+}
+
+// GetVersion retrieves the version of the GLFW library.
+//
+// This function retrieves the major, minor and revision numbers of the GLFW
+// library. It is intended for when you are using GLFW as a shared library and
+// want to ensure that you are using the minimum required version.
+//
+// This function may be called before Init().
+//
+// This function may be called from any thread.
+func GetVersion() (major, minor, rev int) {
+	var cMajor, cMinor, cRev C.int
+	C.glfwGetVersion(&cMajor, &cMinor, &cRev)
+	major, minor, rev = int(cMajor), int(cMinor), int(cRev)
+	return
+}
+
+// GetVersionString returns a string describing the compile-time configuration.
+//
+// This function returns the compile-time generated version string
+// (http://www.glfw.org/docs/latest/intro_guide.html#intro_version_string) of
+// the GLFW library binary. It describes the version, platform, compiler and any
+// platform-specific compile-time options. It should not be confused with the
+// OpenGL or OpenGL ES version string, queried with glGetString.
+//
+// Do not use the version string to parse the GLFW library version. The
+// GetVersion() function provides the version of the running library binary in
+// numerical format.
+//
+// This function may be called before Init().
+//
+// This function may be called from any thread.
+func GetVersionString() string {
+	return C.GoString(C.glfwGetVersionString())
+}
