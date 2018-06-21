@@ -882,13 +882,13 @@ type DropCallback func(win *Window, paths []string)
 //
 // monitor is the monitor that was connected or disconnected. event is one of
 // Connected or Disconnected.
-type MonitorCallback func(monitor *Monitor, event int)
+type MonitorCallback func(monitor *Monitor, event ConnectionEvent)
 
 // JoystickCallback is the function type for joystick configuration callbacks.
 //
 // joy is the joystick that was connected or disconnected. event is one of
 // Connected or Disconnected.
-type JoystickCallback func(joy Joystick, event int)
+type JoystickCallback func(joy Joystick, event ConnectionEvent)
 
 // WindowCallbacks contains all the callback functions set for a window.
 type WindowCallbacks struct {
@@ -1212,8 +1212,7 @@ func (c *Context) SetMonitorCallback(callback MonitorCallback) MonitorCallback {
 //export _monitorCallback
 func _monitorCallback(cMonitor *C.GLFWmonitor, cEvent C.int) {
 	if errorCallback != nil {
-		monitor := (*Monitor)(cMonitor)
-		event := int(cEvent)
+		monitor, event := (*Monitor)(cMonitor), ConnectionEvent(cEvent)
 		monitorCallback(monitor, event)
 	}
 }
@@ -2891,5 +2890,111 @@ func _dropCallback(cWin *C.GLFWwindow, cCount C.int, cPaths **C.char) {
 			paths = append(paths, C.GoString(cPath))
 		}
 		callbacks.DropCallback(win, paths)
+	}
+}
+
+// JoystickPresent returns whether the specified joystick is present.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (c *Context) JoystickPresent(joy Joystick) bool {
+	return int(C.glfwJoystickPresent(C.int(joy))) == True
+}
+
+// GetJoystickAxes returns the values of all axes of the specified joystick.
+// Each element in the slice is a value between -1.0 and 1.0.
+//
+// Querying a joystick slot with no device present is not an error, but will
+// cause this function to return nil. Call Context.JoystickPresent() to check
+// device presence.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetJoystickAxes(joy Joystick) []float32 {
+	var cCount C.int
+	cAxes := C.glfwGetJoystickAxes(C.int(joy), &cCount)
+	if unsafe.Pointer(cAxes) != C.NULL {
+		count := int(cCount)
+		axes := make([]float32, 0, count)
+		for i := 0; i < count; i++ {
+			offset := unsafe.Sizeof(*cAxes) * uintptr(i)
+			cAxis := (*C.float)(unsafe.Pointer(uintptr(unsafe.Pointer(cAxes)) + offset))
+			axes = append(axes, float32(*cAxis))
+		}
+		return axes
+	}
+	return nil
+}
+
+// GetJoystickButtons returns the state of all buttons of the specified
+// joystick. Each element in the slice is either Press or Release.
+//
+// Querying a joystick slot with no device present is not an error, but will
+// cause this function to return nil. Call Context.JoystickPresent() to check
+// device presence.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetJoystickButtons(joy Joystick) []Action {
+	var cCount C.int
+	cActions := C.glfwGetJoystickButtons(C.int(joy), &cCount)
+	if unsafe.Pointer(cActions) != C.NULL {
+		count := int(cCount)
+		actions := make([]Action, 0, count)
+		for i := 0; i < count; i++ {
+			offset := unsafe.Sizeof(*cActions) * uintptr(i)
+			cAction := (*C.uchar)(unsafe.Pointer(uintptr(unsafe.Pointer(cActions)) + offset))
+			actions = append(actions, Action(*cAction))
+		}
+		return actions
+	}
+	return nil
+}
+
+// GetJoystickName returns the name, encoded as UTF-8, of the specified
+// joystick, or nil if the joystick is not present or an error occurred.
+//
+// Querying a joystick slot with no device present is not an error, but will
+// cause this function to return nil. Call Context.JoystickPresent() to check
+// device presence.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetJoystickName(joy Joystick) string {
+	return C.GoString(C.glfwGetJoystickName(C.int(joy)))
+}
+
+// SetJoystickCallback sets the joystick configuration callback, or removes the
+// currently set callback. This is called when a joystick is connected to or
+// disconnected from the system.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) SetJoystickCallback(callback JoystickCallback) JoystickCallback {
+	previousCallback := joystickCallback
+	joystickCallback = callback
+	if callback != nil {
+		C.goSetJoystickCallback()
+	} else {
+		C.goRemoveJoystickCallback()
+	}
+	return previousCallback
+}
+
+//export _joystickCallback
+func _joystickCallback(cJoy, cEvent C.int) {
+	if joystickCallback != nil {
+		joy, event := Joystick(cJoy), ConnectionEvent(cEvent)
+		joystickCallback(joy, event)
 	}
 }
