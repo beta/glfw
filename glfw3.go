@@ -560,8 +560,6 @@ type HintValue int
 const (
 	// Common values.
 	DontCare HintValue = -1
-	True     HintValue = 1
-	False    HintValue = 0
 
 	// Values for ClientAPI.
 	NoAPI       HintValue = 0
@@ -635,6 +633,12 @@ const (
 	HResizeCursor CursorShape = 0x00036005
 	// VResizeCursor : The vertical resize arrow shape.
 	VResizeCursor CursorShape = 0x00036006
+)
+
+// Constants.
+const (
+	True  = 1
+	False = 0
 )
 
 // Monitor is an opaque monitor object.
@@ -835,6 +839,21 @@ type Image struct {
 	// Pixels : The pixel data of this image, arranged left-to-right,
 	// top-to-bottom.
 	Pixels []uint8
+}
+
+func (image *Image) c() *C.GLFWimage {
+	cImage := C.GLFWimage{
+		width:  C.int(image.Width),
+		height: C.int(image.Height),
+	}
+
+	cPixels := make([]C.uchar, 0, len(image.Pixels))
+	for _, pixel := range image.Pixels {
+		cPixels = append(cPixels, C.uchar(pixel))
+	}
+	cImage.pixels = &cPixels[0]
+
+	return &cImage
 }
 
 // Context is an entry point of all GLFW APIs that require initialization.
@@ -1446,18 +1465,7 @@ func (win *Window) SetIcon(images []Image) {
 
 	cImages := make([]C.GLFWimage, 0, len(images))
 	for _, image := range images {
-		cImage := C.GLFWimage{
-			width:  C.int(image.Width),
-			height: C.int(image.Height),
-		}
-
-		cPixels := make([]C.uchar, 0, len(image.Pixels))
-		for _, pixel := range image.Pixels {
-			cPixels = append(cPixels, C.uchar(pixel))
-		}
-		cImage.pixels = &cPixels[0]
-
-		cImages = append(cImages, cImage)
+		cImages = append(cImages, *(image.c()))
 	}
 
 	C.glfwSetWindowIcon(win.c(), C.int(len(images)), &cImages[0])
@@ -2165,4 +2173,237 @@ func (c *Context) WaitEventsTimeout(timeout float64) {
 // This function may be called from any thread.
 func (c *Context) PostEmptyEvent() {
 	C.glfwPostEmptyEvent()
+}
+
+// GetInputMode returns the value of an input option for win. mode must be one
+// of CursorMode, StickyKeysMode or StickyMouseButtonsMode.
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetInputMode(mode InputMode) int {
+	return int(C.glfwGetInputMode(win.c(), C.int(mode)))
+}
+
+// SetInputMode sets an input mode option for win. mode must be one of
+// CursorMode, StickyKeysMode and StickyMouseButtonsMode.
+//
+// If mode is CursorMode, value must be one of the following cursor modes:
+//
+// - CursorNormal makes the cursor visible and behaving normally.
+//
+// - CursorHidden makes the cursor invisible when it is over the client area of
+// win but does not restrict the cursor from leaving.
+//
+// - CursorDisabled hides and grabs the cursor, providing virtual and unlimited
+// cursor movement. This is useful for implementing for example 3D camera
+// controls.
+//
+// If mode is StickyKeysMode, value must be either True to enable sticky keys,
+// or False to disable it. If sticky keys are enabled, a key press will ensure
+// that Window.GetKey() returns Press the next time it is called even if the key
+// had been released before the call. This is useful when you are only
+// interested in whether keys have been pressed but not when or in which order.
+//
+// If mode is StickyMouseButtonsMode, value must be either True to enable sticky
+// mouse buttons, or False to disable it. If sticky mouse buttons are enabeld, a
+// mouse button press will ensure that Window.GetMouseButton() returns Press the
+// next time it is called even if the mouse button had been released before the
+// call. This is useful when you are only interested in whether mouse buttons
+// have been pressed but not when or in which order.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetInputMode(mode InputMode, value int) {
+	C.glfwSetInputMode(win.c(), C.int(mode), C.int(value))
+}
+
+// GetKeyName returns the localized name of the specified printable key. This is
+// intended for displaying key bindings to the user.
+//
+// If key is KeyUnknown, scancode is used instead, otherwise scancode is
+// ignored. If a non-printable key or (if the key is KeyUnknown) a scancode that
+// maps to a non-printable key is specified, this function returns nil.
+//
+// This behavior allows you to pass in the arguments passed to the key callback
+// (http://www.glfw.org/docs/latest/input_guide.html#input_key) without
+// modification.
+//
+// The printable keys are:
+//     KeyApostrophe
+//     KeyComma
+//     KeyMinus
+//     KeyPeriod
+//     KeySlash
+//     KeySemicolon
+//     KeyEqual
+//     KeyLeftBracket
+//     KeyRightBracket
+//     KeyBackslash
+//     KeyWorld1
+//     KeyWorld2
+//     Key0 to Key9
+//     KeyA to KeyZ
+//     KeyKp0 to KeyKp9
+//     KeyKpDecimal
+//     KeyKpDivide
+//     KeyKpMultiply
+//     KeyKpSubtract
+//     KeyKpAdd
+//     KeyKpEqual
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func GetKeyName(key Key, scancode int) string {
+	return C.GoString(C.glfwGetKeyName(C.int(key), C.int(scancode)))
+}
+
+// GetKey returns the last state reported for key to win. The returned state is
+// one of Press or Release. The higher-level action Repeat is only reported to
+// the key callback.
+//
+// If the StickyKeysMode input mode is enabled, this function returns Press the
+// first time you call it for a key that was pressed, even if that key has
+// already been released.
+//
+// The key functions deal with physical keys, with key tokens
+// (http://www.glfw.org/docs/latest/group__keys.html) named after their use on
+// the standard US keyboard layout. If you want to input text, use the Unicode
+// character callback instead.
+//
+// The modifier key bit masks (http://www.glfw.org/docs/latest/group__mods.html)
+// are not key tokens are cannot be used with this function.
+//
+// Do not use this function to implement text input
+// (http://www.glfw.org/docs/latest/input_guide.html#input_char).
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetKey(key Key) Action {
+	return Action(C.glfwGetKey(win.c(), C.int(key)))
+}
+
+// GetMouseButton returns the last state reported for button to win. The
+// returned state is one of Press or Release.
+//
+// If the StickyMouseButtonsMode input mode is enabled, this function returns
+// Press the first time you call it for a mouse button that was pressed, even if
+// that mouse button has already been released.
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetMouseButton(button Button) Action {
+	return Action(C.glfwGetMouseButton(win.c(), C.int(button)))
+}
+
+// GetCursorPos returns the position of the cursor, in screen coordinates,
+// relative to the upper-left corner of the client area of win.
+//
+// If the cursor is disabled (with CursorDisabled) then the cursor position is
+// unbounded and limited only by the minimum and maximum values of a float64.
+//
+// The coordinate can be converted to their integer equivalents with the
+// math.Floor() function. Casting directly to an integer type works for postive
+// coordinates, but fails for negative ones.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetCursorPos() (x, y float64) {
+	var cX, cY C.double
+	C.glfwGetCursorPos(win.c(), &cX, &cY)
+	x, y = float64(cX), float64(cY)
+	return
+}
+
+// SetCursorPos sets the position, in screen coordinates, of the cursor relative
+// to the upper-left corner of the client area of win. win must have input
+// focus. If win does not have input focus when this function is called, it
+// fails silently.
+//
+// Do not use this function to implement things like camera controls. GLFW
+// already provides the CursorDisabled cursor mode that hides the cursor,
+// transparently re-centers it and provides unconstrained cursor motion. See
+// Window.SetInputMode() for more information.
+//
+// If the cursor mode is CursorDisabled then the cursor position is
+// unconstrained and limited only by the minimum and maximum values of a
+// float64.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCursorPos(x, y float64) {
+	C.glfwSetCursorPos(win.c(), C.double(x), C.double(y))
+}
+
+// CreateCursor creates a new custom cursor image that can be set for a window
+// with Window.SetCursor(). The cursor can be destroyed with Cursor.Destroy().
+// Any remaining cursors are destroyed by Context.Terminate().
+//
+// The pixels are 32-bit, little-endian, non-premultiplied RGBA, i.e. eight bits
+// per channel. They are arranged canonically as packed sequential rows,
+// starting from the top-left corner.
+//
+// The cursor hotspot is specified in pixels, relative to the upper-left corner
+// of the cursor image. Like all other coordiate systems in GLFW, the X-axis
+// points to the right and the Y-axis points down.
+//
+// Returns the handle of the created cursor, or nil if an error occurred.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func CreateCursor(image *Image, xhot, yhot int) *Cursor {
+	return (*Cursor)(C.glfwCreateCursor(image.c(), C.int(xhot), C.int(yhot)))
+}
+
+// CreateStandardCursor creates a cursor with a standard shape
+// (http://www.glfw.org/docs/latest/group__shapes.html), that can be set for a
+// window with Window.SetCursor().
+//
+// Returns a new cursor ready to use or nil if an error occurred.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func CreateStandardCursor(shape CursorShape) *Cursor {
+	return (*Cursor)(C.glfwCreateStandardCursor(C.int(shape)))
+}
+
+// Destroy destroys a cursor previously created with CreateCursor. Any remaining
+// cursors will be destroyed by Context.Terminate().
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (cursor *Cursor) Destroy() {
+	C.glfwDestroyCursor(cursor.c())
+}
+
+// SetCursor sets the cursor image to be used when the cursor is over the client
+// area of win. The set cursor will only be visible when the cursor mode
+// (http://www.glfw.org/docs/latest/input_guide.html#cursor_mode) is
+// CursorNormal.
+//
+// On some platforms, the set cursor may not be visible unless the window also
+// has input focus.
+//
+// Set cursor to nil to switch back to the default arrow cursor.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCursor(cursor *Cursor) {
+	C.glfwSetCursor(win.c(), cursor.c())
 }
