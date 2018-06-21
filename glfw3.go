@@ -122,6 +122,119 @@ static void goSetFramebufferSizeCallback(GLFWwindow* window) {
 static void goRemoveFramebufferSizeCallback(GLFWwindow* window) {
 	glfwSetFramebufferSizeCallback(window, NULL);
 }
+
+// Key callback.
+
+void _keyCallback(GLFWwindow*, int, int, int, int);
+
+static void goSetKeyCallback(GLFWwindow* window) {
+	glfwSetKeyCallback(window, _keyCallback);
+}
+
+static void goRemoveKeyCallback(GLFWwindow* window) {
+	glfwSetKeyCallback(window, NULL);
+}
+
+// Char callback.
+
+void _charCallback(GLFWwindow*, unsigned int);
+
+static void goSetCharCallback(GLFWwindow* window) {
+	glfwSetCharCallback(window, _charCallback);
+}
+
+static void goRemoveCharCallback(GLFWwindow* window) {
+	glfwSetCharCallback(window, NULL);
+}
+
+// Char mods callback.
+
+void _charModsCallback(GLFWwindow*, unsigned int, int);
+
+static void goSetCharModsCallback(GLFWwindow* window) {
+	glfwSetCharModsCallback(window, _charModsCallback);
+}
+
+static void goRemoveCharModsCallback(GLFWwindow* window) {
+	glfwSetCharModsCallback(window, NULL);
+}
+
+// Mouse button callback.
+
+void _mouseButtonCallback(GLFWwindow*, int, int, int);
+
+static void goSetMouseButtonCallback(GLFWwindow* window) {
+	glfwSetMouseButtonCallback(window, _mouseButtonCallback);
+}
+
+static void goRemoveMouseButtonCallback(GLFWwindow* window) {
+	glfwSetMouseButtonCallback(window, NULL);
+}
+
+// Cursor position callback.
+
+void _cursorPosCallback(GLFWwindow*, double, double);
+
+static void goSetCursorPosCallback(GLFWwindow* window) {
+	glfwSetCursorPosCallback(window, _cursorPosCallback);
+}
+
+static void goRemoveCursorPosCallback(GLFWwindow* window) {
+	glfwSetCursorPosCallback(window, NULL);
+}
+
+// Cursor enter callback.
+
+void _cursorEnterCallback(GLFWwindow*, int);
+
+static void goSetCursorEnterCallback(GLFWwindow* window) {
+	glfwSetCursorEnterCallback(window, _cursorEnterCallback);
+}
+
+static void goRemoveCursorEnterCallback(GLFWwindow* window) {
+	glfwSetCursorEnterCallback(window, NULL);
+}
+
+// Scroll callback.
+
+void _scrollCallback(GLFWwindow*, double, double);
+
+static void goSetScrollCallback(GLFWwindow* window) {
+	glfwSetScrollCallback(window, _scrollCallback);
+}
+
+static void goRemoveScrollCallback(GLFWwindow* window) {
+	glfwSetScrollCallback(window, NULL);
+}
+
+// Drop callback.
+
+void _dropCallback(GLFWwindow*, int, char**);
+
+// Workaround due to that Go does not support const function params.
+static void _dropCallbackConst(GLFWwindow* window, int count, const char** paths) {
+	_dropCallback(window, count, paths);
+}
+
+static void goSetDropCallback(GLFWwindow* window) {
+	glfwSetDropCallback(window, _dropCallbackConst);
+}
+
+static void goRemoveDropCallback(GLFWwindow* window) {
+	glfwSetDropCallback(window, NULL);
+}
+
+// Joystick callback.
+
+void _joystickCallback(int, int);
+
+static void goSetJoystickCallback() {
+	glfwSetJoystickCallback(_joystickCallback);
+}
+
+static void goRemoveJoystickCallback() {
+	glfwSetJoystickCallback(NULL);
+}
 */
 import "C"
 import "unsafe"
@@ -2406,4 +2519,377 @@ func (cursor *Cursor) Destroy() {
 // This function must only be called from the main thread.
 func (win *Window) SetCursor(cursor *Cursor) {
 	C.glfwSetCursor(win.c(), cursor.c())
+}
+
+// SetKeyCallback sets the key callback of win, which is called when a key is
+// pressed, repeated or released.
+//
+// The key functions deal with physical keys, with layout independent key tokens
+// (http://www.glfw.org/docs/latest/group__keys.html) named after their values
+// in the standard US keyboard layout. If you want to input text, use the
+// character callback (Window.SetCharCallback()) instead.
+//
+// When a window loses input focus, it will generate synthetic key release
+// events for all pressed keys. You can tell these events from user-generated
+// events by the fact that the synthetic ones are generated after the focus loss
+// event has been processed, i.e. after the window focus callback
+// (Window.SetFocusCallback()) has been called.
+//
+// The scancode of a key is specific to that platform or sometimes even to that
+// machine. Scancodes are intended to allow users to bind keys that don't have a
+// GLFW key token. Such keys have key set to KeyUnknown, their state is not
+// saved and so it cannot be queried with Window.GetKey().
+//
+// Sometimes GLFW needs to generate synthetic key events, in which case the
+// scancode may be zero.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetKeyCallback(callback KeyCallback) KeyCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.KeyCallback
+	callbacks.KeyCallback = callback
+
+	if callback != nil {
+		C.goSetKeyCallback(win.c())
+	} else {
+		C.goRemoveKeyCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _keyCallback
+func _keyCallback(cWin *C.GLFWwindow, cKey, cScancode, cAction, cMods C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.KeyCallback != nil {
+		key, scancode, action, mods := Key(cKey), int(cScancode), Action(cAction), ModifierFlag(cMods)
+		callbacks.KeyCallback(win, key, scancode, action, mods)
+	}
+}
+
+// SetCharCallback sets the character callback of win, which is called when a
+// Unicode character is input.
+//
+// The character callback is intended for Unicode text input. As it deals with
+// characters, it is keyboard layout dependent, whereas the key callback
+// (Window.SetKeyCallback()) is not. Characters do not map 1:1 to physical keys,
+// as a key may produce zero, one or more characters. If you want to know
+// whether a specific physical key was pressed or released, see the key callback
+// instead.
+//
+// The character callback behaves as system text input normally does and will
+// not be called if modifier keys are held down that would prevent normal text
+// input on that platform, for example a Super (Command) key on OS X or Alt key
+// on Windows. There is a character with modifiers callback
+// (Window.SetCharModsCallback()) that receives these events.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCharCallback(callback CharCallback) CharCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.CharCallback
+	callbacks.CharCallback = callback
+
+	if callback != nil {
+		C.goSetCharCallback(win.c())
+	} else {
+		C.goRemoveCharCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _charCallback
+func _charCallback(cWin *C.GLFWwindow, cCodepoint C.uint) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.CharCallback != nil {
+		codepoint := rune(cCodepoint)
+		callbacks.CharCallback(win, codepoint)
+	}
+}
+
+// SetCharModsCallback sets the character with modifiers callback of win, which
+// is called when a Unicode character is input regardless of what modifier keys
+// are held.
+//
+// The character with modifiers callback is intended for implementing custom
+// Unicode character input. For regular Unicode text input, see the character
+// callback (Window.SetCharCallback()). Like the character callback, the
+// character with modifiers callback deals with characters and is keyboard
+// layout dependent. Characters do not map 1:1 to physical keys, as a key may
+// produce zero, one or more characters. If you want to know whether a specific
+// physical key was pressed or released, see the key callback
+// (Window.SetKeyCallback()) instead.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCharModsCallback(callback CharModsCallback) CharModsCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.CharModsCallback
+	callbacks.CharModsCallback = callback
+
+	if callback != nil {
+		C.goSetCharModsCallback(win.c())
+	} else {
+		C.goRemoveCharModsCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _charModsCallback
+func _charModsCallback(cWin *C.GLFWwindow, cCodepoint C.uint, cMods C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.CharModsCallback != nil {
+		codepoint, mods := rune(cCodepoint), ModifierFlag(cMods)
+		callbacks.CharModsCallback(win, codepoint, mods)
+	}
+}
+
+// SetMouseButtonCallback sets the mouse button callback of win, which is called
+// when a mouse button is pressed or released.
+//
+// When a window loses input focus, it will generate synthetic mouse button
+// release events for all pressed mouse buttons. You can tell these events from
+// user-generated events by the fact that the synthetic ones are generated after
+// the focus loss event has been processed, i.e. after the window focus callback
+// (Window.SetFocusCallback()) has been called.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetMouseButtonCallback(callback MouseButtonCallback) MouseButtonCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.MouseButtonCallback
+	callbacks.MouseButtonCallback = callback
+
+	if callback != nil {
+		C.goSetMouseButtonCallback(win.c())
+	} else {
+		C.goRemoveMouseButtonCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _mouseButtonCallback
+func _mouseButtonCallback(cWin *C.GLFWwindow, cButton, cAction, cMods C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.MouseButtonCallback != nil {
+		button, action, mods := Button(cButton), Action(cAction), ModifierFlag(cMods)
+		callbacks.MouseButtonCallback(win, button, action, mods)
+	}
+}
+
+// SetCursorPosCallback sets the cursor position callback of win, which is
+// called when the cursor is moved. The callback is provided with the position,
+// in screen coordinates, relative to the upper-left corner of the client area
+// of the window.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCursorPosCallback(callback CursorPosCallback) CursorPosCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.CursorPosCallback
+	callbacks.CursorPosCallback = callback
+
+	if callback != nil {
+		C.goSetCursorPosCallback(win.c())
+	} else {
+		C.goRemoveCursorPosCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _cursorPosCallback
+func _cursorPosCallback(cWin *C.GLFWwindow, cX, cY C.double) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.CursorPosCallback != nil {
+		x, y := float64(cX), float64(cY)
+		callbacks.CursorPosCallback(win, x, y)
+	}
+}
+
+// SetCursorEnterCallback sets the cursor boundary crossing callback of win,
+// which is called when the cursor enters or leaves the client area of the
+// window.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCursorEnterCallback(callback CursorEnterCallback) CursorEnterCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.CursorEnterCallback
+	callbacks.CursorEnterCallback = callback
+
+	if callback != nil {
+		C.goSetCursorEnterCallback(win.c())
+	} else {
+		C.goRemoveCursorEnterCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _cursorEnterCallback
+func _cursorEnterCallback(cWin *C.GLFWwindow, cEntered C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.CursorEnterCallback != nil {
+		entered := int(cEntered) == True
+		callbacks.CursorEnterCallback(win, entered)
+	}
+}
+
+// SetScrollCallback sets the scroll callback of win, which is called when a
+// scrolling device is used, such as a mouse wheel or scrolling area of a
+// touchpad.
+//
+// The scroll callback receives all scrolling input, like that from a mouse
+// wheel or a touchpad scrolling area.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetScrollCallback(callback ScrollCallback) ScrollCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.ScrollCallback
+	callbacks.ScrollCallback = callback
+
+	if callback != nil {
+		C.goSetScrollCallback(win.c())
+	} else {
+		C.goRemoveScrollCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _scrollCallback
+func _scrollCallback(cWin *C.GLFWwindow, cXOffset, cYOffset C.double) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.ScrollCallback != nil {
+		xOffset, yOffset := float64(cXOffset), float64(cYOffset)
+		callbacks.ScrollCallback(win, xOffset, yOffset)
+	}
+}
+
+// SetDropCallback sets the file drop callback of win, which is called when one
+// or more dragged files are dropped on the window.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetDropCallback(callback DropCallback) DropCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.DropCallback
+	callbacks.DropCallback = callback
+
+	if callback != nil {
+		C.goSetDropCallback(win.c())
+	} else {
+		C.goRemoveDropCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _dropCallback
+func _dropCallback(cWin *C.GLFWwindow, cCount C.int, cPaths **C.char) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.DropCallback != nil {
+		count := int(cCount)
+		paths := make([]string, 0, count)
+		for i := 0; i < count; i++ {
+			offset := unsafe.Sizeof(*cPaths) * uintptr(i)
+			cPath := (*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(cPaths)) + offset))
+			paths = append(paths, C.GoString(cPath))
+		}
+		callbacks.DropCallback(win, paths)
+	}
 }
