@@ -1308,3 +1308,262 @@ func (win *Window) SetTitle(title string) {
 
 	C.glfwSetWindowTitle((*C.GLFWwindow)(win), cTitle)
 }
+
+// SetIcon sets the icon for win. If passed a slice of candidate images, those
+// of or closest to the sizes desired by the system are selected. If no images
+// are specified (nil or an empty slice), win reverts to its default icon.
+//
+// The desired image sizes varies depending on platform and system settings. The
+// selected images will be rescaled as needed. Good sizes include 16x16, 32x32
+// and 48x48.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// On OS X, the GLFW window has no icon, as it is not a document window, so this
+// function does nothing. The dock icon will be the same as the application
+// bundle's icon. For more information on bundles, see the Bundle Programming
+// Guide
+// (https://developer.apple.com/library/mac/documentation/CoreFoundation/Conceptual/CFBundles/)
+// in the Mac Developer Library.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetIcon(images []Image) {
+	if images == nil || len(images) == 0 {
+		C.glfwSetWindowIcon((*C.GLFWwindow)(win), 0, (*C.GLFWimage)(C.NULL))
+		return
+	}
+
+	cImages := make([]C.GLFWimage, 0, len(images))
+	for _, image := range images {
+		cImage := C.GLFWimage{
+			width:  C.int(image.Width),
+			height: C.int(image.Height),
+		}
+
+		cPixels := make([]C.uchar, 0, len(image.Pixels))
+		for _, pixel := range image.Pixels {
+			cPixels = append(cPixels, C.uchar(pixel))
+		}
+		cImage.pixels = &cPixels[0]
+
+		cImages = append(cImages, cImage)
+	}
+
+	C.glfwSetWindowIcon((*C.GLFWwindow)(win), C.int(len(images)), &cImages[0])
+}
+
+// GetPos retrieves the position, in screen coordinates, of the upper-left
+// corner of the client area of win.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetPos() (x, y int) {
+	var cX, cY C.int
+	C.glfwGetWindowPos((*C.GLFWwindow)(win), &cX, &cY)
+	x, y = int(cX), int(cY)
+	return
+}
+
+// SetPos sets the position, in screen coordinates, of the upper-left corner of
+// the client area of win, a windowed mode window. If the window is a full
+// screen window, this function does nothing.
+//
+// Do not use this function to move an already visible window unless you have
+// very good reasons for doing so, as it will confuse and annoy the user.
+//
+// The window manager may put limits on what positions are allowed. GLFW cannot
+// and should not override these limits.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetPos(x, y int) {
+	C.glfwSetWindowPos((*C.GLFWwindow)(win), C.int(x), C.int(y))
+}
+
+// GetSize retrieves the size, in screen coordinates, of the client area of win.
+// If you wish to retrieve the size of the framebuffer of the window in pixels,
+// see Window.GetFramebufferSize().
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetSize() (width, height int) {
+	var cWidth, cHeight C.int
+	C.glfwGetWindowSize((*C.GLFWwindow)(win), &cWidth, &cHeight)
+	width, height = int(cWidth), int(cHeight)
+	return
+}
+
+// SetSizeLimits sets the size limits of the client area of win. If win is full
+// screen, the size limits only take effect once it is made windowed. If win is
+// not resizable, this function does nothing.
+//
+// The size limits are applied immediately to a windowed mode window and may
+// cause it to be resized.
+//
+// The maximum dimensions must be greater than or equal to the minimum
+// dimensions and all must be greater than or equal to zero.
+//
+// Use DontCare to disable the size limit for a dimension.
+//
+// Possible errors include NotInitialized, InvalidValue and PlatformError.
+//
+// If you set size limits and an aspect ratio that conflict, the results are
+// undefined.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight int) {
+	C.glfwSetWindowSizeLimits((*C.GLFWwindow)(win), C.int(minWidth), C.int(minHeight), C.int(maxWidth), C.int(maxHeight))
+}
+
+// SetAspectRatio sets the required aspect ratio of the client area of win. If
+// win is full screen, the aspect ratio only takes effect once it is made
+// windowed. If win is not resizable, this function does nothing.
+//
+// The aspect ratio is specified as a numerator and a denominator and both
+// values must be greater than zero. For example, the common 16:9 aspect ratio
+// is specified as 16 and 9, respectively.
+//
+// If the numerator and denominator is set to DontCare then the aspect ratio
+// limit is disabled.
+//
+// The aspect ratio is applied immediately to a windowed mode window and may
+// cause it to be resized.
+//
+// Possible errors include NotInitialized, InvalidValue and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetAspectRatio(numer, denom int) {
+	C.glfwSetWindowAspectRatio((*C.GLFWwindow)(win), C.int(numer), C.int(denom))
+}
+
+// SetSize sets the size, in screen coordinates, of the client area of win.
+//
+// For full screen windows, this function updates the resolution of its desired
+// video mode and switches to the video mode closest to it, without affecting
+// the window's context. As the context is unaffected, the bit depths of the
+// framebuffer remain unchaged.
+//
+// If you wish to update the refresh rate of the desired video mode in addition
+// to its resolution, see Window.SetMonitor().
+//
+// The window manager may put limits on what sizes are allowed. GLFW cannot and
+// should not override these limits.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetSize(width, height int) {
+	C.glfwSetWindowSize((*C.GLFWwindow)(win), C.int(width), C.int(height))
+}
+
+// GetFramebufferSize retrives the size, in pixels, of the framebuffer of win.
+// If you wish to retrieve toe size of win in screen coordinates, see
+// Window.GetSize().
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetFramebufferSize() (width, height int) {
+	var cWidth, cHeight C.int
+	C.glfwGetFramebufferSize((*C.GLFWwindow)(win), &cWidth, &cHeight)
+	width, height = int(cWidth), int(cHeight)
+	return
+}
+
+// GetFrameSize retrieves the size, in screen coordinates, of each edge of the
+// frame of win. This size includes the title bar, if the window has one. The
+// size of the frame may vary depending on the window-related hints
+// (http://www.glfw.org/docs/latest/window_guide.html#window_hints_wnd) used to
+// create it.
+//
+// Because this function retrieves the size of each window frame edge and not
+// the offset along a particular coordinate axis, the retrieved values will
+// always be zero or positive.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetFrameSize() (left, top, right, bottom int) {
+	var cLeft, cTop, cRight, cBottom C.int
+	C.glfwGetWindowFrameSize((*C.GLFWwindow)(win), &cLeft, &cTop, &cRight, &cBottom)
+	left, top, right, bottom = int(cLeft), int(cTop), int(cRight), int(cBottom)
+	return
+}
+
+// Iconify iconifies (minimizes) win if it was previously restored. If win is
+// already iconified, this function does nothing.
+//
+// If win is a full screen window, the original monitor resolution is restored
+// until the window is restored.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Iconify() {
+	C.glfwIconifyWindow((*C.GLFWwindow)(win))
+}
+
+// Restore restores win if it was previously iconified (minimized) or maximized.
+// If win is already restored, this function does nothing.
+//
+// If win is a full screen window, the resolution chosen for win is restored
+// on the selected monitor.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Restore() {
+	C.glfwRestoreWindow((*C.GLFWwindow)(win))
+}
+
+// Maximize maximizes win if it was previously not maximized. If win is already
+// maximized, this function does nothing.
+//
+// If win is a full screen window, this function does nothing.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Maximize() {
+	C.glfwMaximizeWindow((*C.GLFWwindow)(win))
+}
+
+// Show makes win visible if it was previously hidden. If win is already visible
+// or is in full screen mode, this function does nothing.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Show() {
+	C.glfwShowWindow((*C.GLFWwindow)(win))
+}
+
+// Hide hides win if it was previously visible. If win is already hidden of is
+// in full screen mode, this function does nothing.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Hide() {
+	C.glfwHideWindow((*C.GLFWwindow)(win))
+}
+
+// Focus brings win to front and sets input focus. win should already be visible
+// and not iconified.
+//
+// Be default, both windowed and full screen mode windows are focused when
+// initially created. Set the Focused hint to disable this behavior.
+//
+// Do not use this function to steal focus from other applications unless you
+// are certain that is what the user wants. Focus stealing can be extremely
+// disruptive.
+//
+// Possible errors include NotInitailized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) Focus() {
+	C.glfwFocusWindow((*C.GLFWwindow)(win))
+}
