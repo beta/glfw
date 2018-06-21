@@ -10,7 +10,8 @@ package glfw3
 #include <stdlib.h>
 #include <GLFW/glfw3.h>
 
-// Gateway for error callback function in Go.
+// Error callback.
+
 void _errorCallback(int, char*);
 
 // Workaround due to that Go does not support const function params.
@@ -18,27 +19,108 @@ static void _errorCallbackConst(int err, const char* desc) {
 	_errorCallback(err, desc);
 }
 
-// Sets an error callback.
 static void goSetErrorCallback() {
 	glfwSetErrorCallback(_errorCallbackConst);
 }
 
-// Removes the error callback.
 static void goRemoveErrorCallback() {
 	glfwSetErrorCallback(NULL);
 }
 
-// Gateway for monitor callback function in Go.
+// Monitor callback.
+
 void _monitorCallback(GLFWmonitor*, int);
 
-// Sets an monitor callback.
 static void goSetMonitorCallback() {
 	glfwSetMonitorCallback(_monitorCallback);
 }
 
-// Removes the monitor callback.
 static void goRemoveMonitorCallback() {
 	glfwSetMonitorCallback(NULL);
+}
+
+// Window position callback.
+
+void _windowPosCallback(GLFWwindow*, int, int);
+
+static void goSetWindowPosCallback(GLFWwindow* window) {
+	glfwSetWindowPosCallback(window, _windowPosCallback);
+}
+
+static void goRemoveWindowPosCallback(GLFWwindow* window) {
+	glfwSetWindowPosCallback(window, NULL);
+}
+
+// Window size callback.
+
+void _windowSizeCallback(GLFWwindow*, int, int);
+
+static void goSetWindowSizeCallback(GLFWwindow* window) {
+	glfwSetWindowSizeCallback(window, _windowSizeCallback);
+}
+
+static void goRemoveWindowSizeCallback(GLFWwindow* window) {
+	glfwSetWindowSizeCallback(window, NULL);
+}
+
+// Window close callback.
+
+void _windowCloseCallback(GLFWwindow*);
+
+static void goSetWindowCloseCallback(GLFWwindow* window) {
+	glfwSetWindowCloseCallback(window, _windowCloseCallback);
+}
+
+static void goRemoveWindowCloseCallback(GLFWwindow* window) {
+	glfwSetWindowCloseCallback(window, NULL);
+}
+
+// Window refresh callback.
+
+void _windowRefreshCallback(GLFWwindow*);
+
+static void goSetWindowRefreshCallback(GLFWwindow* window) {
+	glfwSetWindowRefreshCallback(window, _windowRefreshCallback);
+}
+
+static void goRemoveWindowRefreshCallback(GLFWwindow* window) {
+	glfwSetWindowRefreshCallback(window, NULL);
+}
+
+// Window focus callback.
+
+void _windowFocusCallback(GLFWwindow*, int);
+
+static void goSetWindowFocusCallback(GLFWwindow* window) {
+	glfwSetWindowFocusCallback(window, _windowFocusCallback);
+}
+
+static void goRemoveWindowFocusCallback(GLFWwindow* window) {
+	glfwSetWindowFocusCallback(window, NULL);
+}
+
+// Window iconify callback.
+
+void _windowIconifyCallback(GLFWwindow*, int);
+
+static void goSetWindowIconifyCallback(GLFWwindow* window) {
+	glfwSetWindowIconifyCallback(window, _windowIconifyCallback);
+}
+
+static void goRemoveWindowIconifyCallback(GLFWwindow* window) {
+	glfwSetWindowIconifyCallback(window, NULL);
+}
+
+// Framebuffer size callback.
+
+void _framebufferSizeCallback(GLFWwindow*, int, int);
+
+static void goSetFramebufferSizeCallback(GLFWwindow* window) {
+	glfwSetFramebufferSizeCallback(window, _framebufferSizeCallback);
+}
+
+static void goRemoveFramebufferSizeCallback(GLFWwindow* window) {
+	glfwSetFramebufferSizeCallback(window, NULL);
 }
 */
 import "C"
@@ -478,6 +560,8 @@ type HintValue int
 const (
 	// Common values.
 	DontCare HintValue = -1
+	True     HintValue = 1
+	False    HintValue = 0
 
 	// Values for ClientAPI.
 	NoAPI       HintValue = 0
@@ -535,12 +619,6 @@ const (
 	Disconnected ConnectionEvent = 0x00040002
 )
 
-// Constants.
-const (
-	True  = 1
-	False = 0
-)
-
 // CursorShape represent a standard cursor shape.
 type CursorShape int
 
@@ -562,11 +640,23 @@ const (
 // Monitor is an opaque monitor object.
 type Monitor C.GLFWmonitor
 
+func (monitor *Monitor) c() *C.GLFWmonitor {
+	return (*C.GLFWmonitor)(monitor)
+}
+
 // Window is an opaque window object.
 type Window C.GLFWwindow
 
+func (win *Window) c() *C.GLFWwindow {
+	return (*C.GLFWwindow)(win)
+}
+
 // Cursor is an opaque cursor object.
-type Cursor *C.GLFWcursor
+type Cursor C.GLFWcursor
+
+func (cursor *Cursor) c() *C.GLFWcursor {
+	return (*C.GLFWcursor)(cursor)
+}
 
 // ErrorCallback is a function type for error callbacks.
 //
@@ -683,6 +773,33 @@ type MonitorCallback func(monitor *Monitor, event int)
 // Connected or Disconnected.
 type JoystickCallback func(joy Joystick, event int)
 
+// WindowCallbacks contains all the callback functions set for a window.
+type WindowCallbacks struct {
+	PosCallback             WindowPosCallback
+	SizeCallback            WindowSizeCallback
+	CloseCallback           WindowCloseCallback
+	RefreshCallback         WindowRefreshCallback
+	FocusCallback           WindowFocusCallback
+	IconifyCallback         WindowIconifyCallback
+	FramebufferSizeCallback FramebufferSizeCallback
+	MouseButtonCallback     MouseButtonCallback
+	CursorPosCallback       CursorPosCallback
+	CursorEnterCallback     CursorEnterCallback
+	ScrollCallback          ScrollCallback
+	KeyCallback             KeyCallback
+	CharCallback            CharCallback
+	CharModsCallback        CharModsCallback
+	DropCallback            DropCallback
+}
+
+// Callbacks containers.
+var (
+	errorCallback    ErrorCallback
+	monitorCallback  MonitorCallback
+	joystickCallback JoystickCallback
+	windowCallbacks  = make(map[*Window]*WindowCallbacks, 0)
+)
+
 // VideoMode describes a single video mode.
 type VideoMode struct {
 	// Width : The width, in screen coordinates, of the video mode.
@@ -721,10 +838,7 @@ type Image struct {
 }
 
 // Context is an entry point of all GLFW APIs that require initialization.
-type Context struct {
-	errorCallback   ErrorCallback
-	monitorCallback MonitorCallback
-}
+type Context struct{}
 
 // Init initializes the GLFW library.
 //
@@ -750,8 +864,7 @@ type Context struct {
 // This function must only be called from the main thread.
 func Init() *Context {
 	if int(C.glfwInit()) == 1 {
-		currentContext = new(Context)
-		return currentContext
+		return new(Context)
 	}
 	return nil
 }
@@ -778,8 +891,6 @@ func Init() *Context {
 func (c *Context) Terminate() {
 	C.glfwTerminate()
 }
-
-var currentContext *Context
 
 // GetVersion retrieves the version of the GLFW library.
 //
@@ -830,8 +941,8 @@ func GetVersionString() string {
 //
 // This function must only be called from the main thread.
 func (c *Context) SetErrorCallback(callback ErrorCallback) ErrorCallback {
-	previousCallback := c.errorCallback
-	c.errorCallback = callback
+	previousCallback := errorCallback
+	errorCallback = callback
 	if callback != nil {
 		C.goSetErrorCallback()
 	} else {
@@ -842,10 +953,10 @@ func (c *Context) SetErrorCallback(callback ErrorCallback) ErrorCallback {
 
 //export _errorCallback
 func _errorCallback(cErr C.int, cDesc *C.char) {
-	if currentContext != nil && currentContext.errorCallback != nil {
+	if errorCallback != nil {
 		err := Error(cErr)
 		desc := C.GoString(cDesc)
-		currentContext.errorCallback(err, desc)
+		errorCallback(err, desc)
 	}
 }
 
@@ -956,8 +1067,8 @@ func (monitor *Monitor) GetName() string {
 //
 // This function must only be called from the main thread.
 func (c *Context) SetMonitorCallback(callback MonitorCallback) MonitorCallback {
-	previousCallback := c.monitorCallback
-	c.monitorCallback = callback
+	previousCallback := monitorCallback
+	monitorCallback = callback
 	if callback != nil {
 		C.goSetMonitorCallback()
 	} else {
@@ -968,10 +1079,10 @@ func (c *Context) SetMonitorCallback(callback MonitorCallback) MonitorCallback {
 
 //export _monitorCallback
 func _monitorCallback(cMonitor *C.GLFWmonitor, cEvent C.int) {
-	if currentContext != nil && currentContext.errorCallback != nil {
+	if errorCallback != nil {
 		monitor := (*Monitor)(cMonitor)
 		event := int(cEvent)
-		currentContext.monitorCallback(monitor, event)
+		monitorCallback(monitor, event)
 	}
 }
 
@@ -1128,7 +1239,7 @@ func (c *Context) WindowHint(hint Hint, value HintValue) {
 	C.glfwWindowHint(C.int(hint), C.int(value))
 }
 
-// WindowHintBool is a shorthand for setting window hints with boolean values.
+// WindowHintBool is a shortcut for setting window hints with boolean values.
 func (c *Context) WindowHintBool(hint Hint, value bool) {
 	if value {
 		c.WindowHint(hint, HintValue(True))
@@ -1245,7 +1356,7 @@ func (c *Context) WindowHintBool(hint Hint, value bool) {
 func (c *Context) CreateWindow(width, height int, title string, monitor *Monitor, share *Window) *Window {
 	cTitle := C.CString(title)
 	defer C.free(unsafe.Pointer(cTitle))
-	cWindow := C.glfwCreateWindow(C.int(width), C.int(height), cTitle, (*C.GLFWmonitor)(monitor), (*C.GLFWwindow)(share))
+	cWindow := C.glfwCreateWindow(C.int(width), C.int(height), cTitle, (*C.GLFWmonitor)(monitor), share.c())
 	if unsafe.Pointer(cWindow) != C.NULL {
 		return (*Window)(cWindow)
 	}
@@ -1267,7 +1378,7 @@ func (c *Context) CreateWindow(width, height int, title string, monitor *Monitor
 //
 // This function must only be called from the main thread.
 func (win *Window) Destroy() {
-	C.glfwDestroyWindow((*C.GLFWwindow)(win))
+	C.glfwDestroyWindow(win.c())
 }
 
 // ShouldClose returns the value of the close flag of win.
@@ -1276,7 +1387,7 @@ func (win *Window) Destroy() {
 //
 // This function may be called from any thread. Access is not synchronized.
 func (win *Window) ShouldClose() bool {
-	return int(C.glfwWindowShouldClose((*C.GLFWwindow)(win))) != 0
+	return int(C.glfwWindowShouldClose(win.c())) != 0
 }
 
 // SetShouldClose sets the value of the close flag of win. This can be used to
@@ -1291,7 +1402,7 @@ func (win *Window) SetShouldClose(value bool) {
 	if value {
 		cValue = 1
 	}
-	C.glfwSetWindowShouldClose((*C.GLFWwindow)(win), cValue)
+	C.glfwSetWindowShouldClose(win.c(), cValue)
 }
 
 // SetTitle sets the window title, encoded as UTF-8, of win.
@@ -1306,7 +1417,7 @@ func (win *Window) SetTitle(title string) {
 	cTitle := C.CString(title)
 	defer C.free(unsafe.Pointer(cTitle))
 
-	C.glfwSetWindowTitle((*C.GLFWwindow)(win), cTitle)
+	C.glfwSetWindowTitle(win.c(), cTitle)
 }
 
 // SetIcon sets the icon for win. If passed a slice of candidate images, those
@@ -1329,7 +1440,7 @@ func (win *Window) SetTitle(title string) {
 // This function must only be called from the main thread.
 func (win *Window) SetIcon(images []Image) {
 	if images == nil || len(images) == 0 {
-		C.glfwSetWindowIcon((*C.GLFWwindow)(win), 0, (*C.GLFWimage)(C.NULL))
+		C.glfwSetWindowIcon(win.c(), 0, (*C.GLFWimage)(C.NULL))
 		return
 	}
 
@@ -1349,7 +1460,7 @@ func (win *Window) SetIcon(images []Image) {
 		cImages = append(cImages, cImage)
 	}
 
-	C.glfwSetWindowIcon((*C.GLFWwindow)(win), C.int(len(images)), &cImages[0])
+	C.glfwSetWindowIcon(win.c(), C.int(len(images)), &cImages[0])
 }
 
 // GetPos retrieves the position, in screen coordinates, of the upper-left
@@ -1360,7 +1471,7 @@ func (win *Window) SetIcon(images []Image) {
 // This function must only be called from the main thread.
 func (win *Window) GetPos() (x, y int) {
 	var cX, cY C.int
-	C.glfwGetWindowPos((*C.GLFWwindow)(win), &cX, &cY)
+	C.glfwGetWindowPos(win.c(), &cX, &cY)
 	x, y = int(cX), int(cY)
 	return
 }
@@ -1379,7 +1490,7 @@ func (win *Window) GetPos() (x, y int) {
 //
 // This function must only be called from the main thread.
 func (win *Window) SetPos(x, y int) {
-	C.glfwSetWindowPos((*C.GLFWwindow)(win), C.int(x), C.int(y))
+	C.glfwSetWindowPos(win.c(), C.int(x), C.int(y))
 }
 
 // GetSize retrieves the size, in screen coordinates, of the client area of win.
@@ -1391,7 +1502,7 @@ func (win *Window) SetPos(x, y int) {
 // This function must only be called from the main thread.
 func (win *Window) GetSize() (width, height int) {
 	var cWidth, cHeight C.int
-	C.glfwGetWindowSize((*C.GLFWwindow)(win), &cWidth, &cHeight)
+	C.glfwGetWindowSize(win.c(), &cWidth, &cHeight)
 	width, height = int(cWidth), int(cHeight)
 	return
 }
@@ -1415,7 +1526,7 @@ func (win *Window) GetSize() (width, height int) {
 //
 // This function must only be called from the main thread.
 func (win *Window) SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight int) {
-	C.glfwSetWindowSizeLimits((*C.GLFWwindow)(win), C.int(minWidth), C.int(minHeight), C.int(maxWidth), C.int(maxHeight))
+	C.glfwSetWindowSizeLimits(win.c(), C.int(minWidth), C.int(minHeight), C.int(maxWidth), C.int(maxHeight))
 }
 
 // SetAspectRatio sets the required aspect ratio of the client area of win. If
@@ -1436,7 +1547,7 @@ func (win *Window) SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight int) {
 //
 // This function must only be called from the main thread.
 func (win *Window) SetAspectRatio(numer, denom int) {
-	C.glfwSetWindowAspectRatio((*C.GLFWwindow)(win), C.int(numer), C.int(denom))
+	C.glfwSetWindowAspectRatio(win.c(), C.int(numer), C.int(denom))
 }
 
 // SetSize sets the size, in screen coordinates, of the client area of win.
@@ -1456,7 +1567,7 @@ func (win *Window) SetAspectRatio(numer, denom int) {
 //
 // This function must only be called from the main thread.
 func (win *Window) SetSize(width, height int) {
-	C.glfwSetWindowSize((*C.GLFWwindow)(win), C.int(width), C.int(height))
+	C.glfwSetWindowSize(win.c(), C.int(width), C.int(height))
 }
 
 // GetFramebufferSize retrives the size, in pixels, of the framebuffer of win.
@@ -1468,7 +1579,7 @@ func (win *Window) SetSize(width, height int) {
 // This function must only be called from the main thread.
 func (win *Window) GetFramebufferSize() (width, height int) {
 	var cWidth, cHeight C.int
-	C.glfwGetFramebufferSize((*C.GLFWwindow)(win), &cWidth, &cHeight)
+	C.glfwGetFramebufferSize(win.c(), &cWidth, &cHeight)
 	width, height = int(cWidth), int(cHeight)
 	return
 }
@@ -1488,7 +1599,7 @@ func (win *Window) GetFramebufferSize() (width, height int) {
 // This function must only be called from the main thread.
 func (win *Window) GetFrameSize() (left, top, right, bottom int) {
 	var cLeft, cTop, cRight, cBottom C.int
-	C.glfwGetWindowFrameSize((*C.GLFWwindow)(win), &cLeft, &cTop, &cRight, &cBottom)
+	C.glfwGetWindowFrameSize(win.c(), &cLeft, &cTop, &cRight, &cBottom)
 	left, top, right, bottom = int(cLeft), int(cTop), int(cRight), int(cBottom)
 	return
 }
@@ -1503,7 +1614,7 @@ func (win *Window) GetFrameSize() (left, top, right, bottom int) {
 //
 // This function must only be called from the main thread.
 func (win *Window) Iconify() {
-	C.glfwIconifyWindow((*C.GLFWwindow)(win))
+	C.glfwIconifyWindow(win.c())
 }
 
 // Restore restores win if it was previously iconified (minimized) or maximized.
@@ -1516,7 +1627,7 @@ func (win *Window) Iconify() {
 //
 // This function must only be called from the main thread.
 func (win *Window) Restore() {
-	C.glfwRestoreWindow((*C.GLFWwindow)(win))
+	C.glfwRestoreWindow(win.c())
 }
 
 // Maximize maximizes win if it was previously not maximized. If win is already
@@ -1528,7 +1639,7 @@ func (win *Window) Restore() {
 //
 // This function must only be called from the main thread.
 func (win *Window) Maximize() {
-	C.glfwMaximizeWindow((*C.GLFWwindow)(win))
+	C.glfwMaximizeWindow(win.c())
 }
 
 // Show makes win visible if it was previously hidden. If win is already visible
@@ -1538,7 +1649,7 @@ func (win *Window) Maximize() {
 //
 // This function must only be called from the main thread.
 func (win *Window) Show() {
-	C.glfwShowWindow((*C.GLFWwindow)(win))
+	C.glfwShowWindow(win.c())
 }
 
 // Hide hides win if it was previously visible. If win is already hidden of is
@@ -1548,7 +1659,7 @@ func (win *Window) Show() {
 //
 // This function must only be called from the main thread.
 func (win *Window) Hide() {
-	C.glfwHideWindow((*C.GLFWwindow)(win))
+	C.glfwHideWindow(win.c())
 }
 
 // Focus brings win to front and sets input focus. win should already be visible
@@ -1565,5 +1676,493 @@ func (win *Window) Hide() {
 //
 // This function must only be called from the main thread.
 func (win *Window) Focus() {
-	C.glfwFocusWindow((*C.GLFWwindow)(win))
+	C.glfwFocusWindow(win.c())
+}
+
+// GetMonitor returns the handle of the monitor that win is in full screen on.
+// Returns nil if win is in windowed mode or an error occurred.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetMonitor() *Monitor {
+	return (*Monitor)(C.glfwGetWindowMonitor(win.c()))
+}
+
+// SetMonitor sets the monitor that win uses for full screen mode or, if monitor
+// is nil, makes it windowed mode.
+//
+// When setting a monitor, this function updates the width, height and refresh
+// rate of the desired video mode and switches to the video mode closest to it.
+// The window position is ignored when setting a monitor.
+//
+// When monitor is nil, x, y, width and height are used to place the window
+// client area. refreshRate is ignored when no monitor is specified.
+//
+// If you only wish to update the resolution of a full screen window or the size
+// of a windowed mode window, see Window.SetSize().
+//
+// When a window transitions from full screen to windowed mode, this function
+// restores any previous window settings such as whether it is decorated,
+// floating, resizable, has size or aspect ratio limits, etc..
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetMonitor(monitor *Monitor, x, y, width, height, refreshRate int) {
+	C.glfwSetWindowMonitor(win.c(), (*C.GLFWmonitor)(monitor), C.int(x), C.int(y), C.int(width), C.int(height), C.int(refreshRate))
+}
+
+// GetAttrib returns the value of an attribute of win or its OpenGL or OpenGL ES
+// context. Returns zero if an error occurred.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// Framebuffer related hints are not window attributes. See Framebuffer related
+// attributes
+// (http://www.glfw.org/docs/latest/window_guide.html#window_attribs_fb) for
+// more information.
+//
+// Zero is a valid value for many window and context related attributes so you
+// cannot use a return value of zero as an indication of errors. However, this
+// function should not fail as long as it is passed valid arguments and the
+// library has been initialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetAttrib(attrib Hint) HintValue {
+	return HintValue(C.glfwGetWindowAttrib(win.c(), C.int(attrib)))
+}
+
+// GetAttribBool is a shortcut for getting window attributes with boolean
+// values.
+func (win *Window) GetAttribBool(attrib Hint) bool {
+	return HintValue(C.glfwGetWindowAttrib(win.c(), C.int(attrib))) == True
+}
+
+// SetUserPointer sets the user-defined pointer of window. The current value is
+// retained until the window is destroyed. The initial value is nil.
+//
+// Possible error include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (win *Window) SetUserPointer(pointer *interface{}) {
+	C.glfwSetWindowUserPointer(win.c(), unsafe.Pointer(pointer))
+}
+
+// GetUserPointer returns the current value of the user-defined pointer of win.
+// The initial value is nil.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (win *Window) GetUserPointer() *interface{} {
+	cPointer := C.glfwGetWindowUserPointer(win.c())
+	if unsafe.Pointer(cPointer) != C.NULL {
+		return (*interface{})(cPointer)
+	}
+	return nil
+}
+
+// SetPosCallback sets the position callback for win, which is called when win
+// is moved. The callback is provided with the screen position of the upper-left
+// corner of the client area of win.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetPosCallback(callback WindowPosCallback) WindowPosCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.PosCallback
+	callbacks.PosCallback = callback
+
+	if callback != nil {
+		C.goSetWindowPosCallback(win.c())
+	} else {
+		C.goRemoveWindowPosCallback(win.c())
+	}
+	return previousCallback
+}
+
+//export _windowPosCallback
+func _windowPosCallback(cWin *C.GLFWwindow, cX, cY C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.PosCallback != nil {
+		x, y := int(cX), int(cY)
+		callbacks.PosCallback(win, x, y)
+	}
+}
+
+// SetSizeCallback sets the size callback of win, which is called when win is
+// resized. The callback is provided with the size, in screen coordinates, of
+// the client area of win.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetSizeCallback(callback WindowSizeCallback) WindowSizeCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.SizeCallback
+	callbacks.SizeCallback = callback
+
+	if callback != nil {
+		C.goSetWindowSizeCallback(win.c())
+	} else {
+		C.goRemoveWindowSizeCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowSizeCallback
+func _windowSizeCallback(cWin *C.GLFWwindow, cWidth, cHeight C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.SizeCallback != nil {
+		width, height := int(cWidth), int(cHeight)
+		callbacks.SizeCallback(win, width, height)
+	}
+}
+
+// SetCloseCallback sets the close callback of win, which is called when the
+// user attempts to close the window, for example by clicking the close widget
+// in the title bar.
+//
+// The close flag is set before this callback is called, but you can modify it
+// at any time with Window.SetShouldClose().
+//
+// The close callback is not triggered by Window.Destroy().
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetCloseCallback(callback WindowCloseCallback) WindowCloseCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.CloseCallback
+	callbacks.CloseCallback = callback
+
+	if callback != nil {
+		C.goSetWindowCloseCallback(win.c())
+	} else {
+		C.goRemoveWindowCloseCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowCloseCallback
+func _windowCloseCallback(cWin *C.GLFWwindow) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.CloseCallback != nil {
+		callbacks.CloseCallback(win)
+	}
+}
+
+// SetRefreshCallback sets the refresh callback for win, which is called when
+// the client area of win needs to be redrawn, for example if the window has
+// been exposed after having been covered by another window.
+//
+// On compositing window systems such as Aero, Compiz or Aqua, where the window
+// contents are saved off-screen, this callback may be called only very
+// infrequently or never at all.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitailized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetRefreshCallback(callback WindowRefreshCallback) WindowRefreshCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.RefreshCallback
+	callbacks.RefreshCallback = callback
+
+	if callback != nil {
+		C.goSetWindowRefreshCallback(win.c())
+	} else {
+		C.goRemoveWindowRefreshCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowRefreshCallback
+func _windowRefreshCallback(cWin *C.GLFWwindow) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.RefreshCallback != nil {
+		callbacks.RefreshCallback(win)
+	}
+}
+
+// SetFocusCallback sets the focus callback of win, which is called when win
+// gains or loses input focus.
+//
+// After the focus callback is called for a window that lost input focus,
+// synthetic key and mouse button release events will be generated for all such
+// that had been pressed. For more information, see Window.SetKeyCallback() and
+// Window.SetMouseButtonCallback.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetFocusCallback(callback WindowFocusCallback) WindowFocusCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.FocusCallback
+	callbacks.FocusCallback = callback
+
+	if callback != nil {
+		C.goSetWindowFocusCallback(win.c())
+	} else {
+		C.goRemoveWindowFocusCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowFocusCallback
+func _windowFocusCallback(cWin *C.GLFWwindow, cFocused C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.FocusCallback != nil {
+		focused := int(cFocused) == int(True)
+		callbacks.FocusCallback(win, focused)
+	}
+}
+
+// SetIconifyCallback sets the iconification callback of win, which is called
+// when win is iconified or restored.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetIconifyCallback(callback WindowIconifyCallback) WindowIconifyCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.IconifyCallback
+	callbacks.IconifyCallback = callback
+
+	if callback != nil {
+		C.goSetWindowIconifyCallback(win.c())
+	} else {
+		C.goRemoveWindowIconifyCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowIconifyCallback
+func _windowIconifyCallback(cWin *C.GLFWwindow, cIconified C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.IconifyCallback != nil {
+		iconified := int(cIconified) == int(True)
+		callbacks.IconifyCallback(win, iconified)
+	}
+}
+
+// SetFramebufferSizeCallback sets the framebuffer resize callback of win, which
+// is called when the framebuffer of win is resized.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetFramebufferSizeCallback(callback FramebufferSizeCallback) FramebufferSizeCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.FramebufferSizeCallback
+	callbacks.FramebufferSizeCallback = callback
+
+	if callback != nil {
+		C.goSetFramebufferSizeCallback(win.c())
+	} else {
+		C.goRemoveFramebufferSizeCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _framebufferSizeCallback
+func _framebufferSizeCallback(cWin *C.GLFWwindow, cWidth, cHeight C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.FramebufferSizeCallback != nil {
+		width, height := int(cWidth), int(cHeight)
+		callbacks.FramebufferSizeCallback(win, width, height)
+	}
+}
+
+// PollEvents processes all pending events.
+//
+// This function processes only those events that are already in the event queue
+// and then returns immediately. Processing events will cause the window and
+// input callbacks associated with those events to be called.
+//
+// On some platforms, a window move, resize or menu operation will cause event
+// processing to block. This is due to how event processing is designed on those
+// platforms. You can use the window refresh callbacks
+// (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
+// the contents of your window when necessary during such operations.
+//
+// On some platforms, certain events are sent directly to the application
+// without going through the event queue, causing callbacks to be called outside
+// of a call to one of the event processing functions.
+//
+// Event processing is not required for joystick input to work.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (c *Context) PollEvents() {
+	C.glfwPollEvents()
+}
+
+// WaitEvents waits until events are queued and processes them.
+//
+// This function puts the calling thread to sleep until at least one event is
+// available in the event queue. Once one or more events are available, it
+// behaves exactly like Context.PollEvents(), i.e. the events in the queue are
+// processed and the function then returns immediately. Processing events will
+// cause the window and input callbacks associated with those events to be
+// called.
+//
+// Since not all events are associated with callbacks, this function may return
+// without a callback having beencalled even if you are monitoring all
+// callbacks.
+//
+// On some platforms, a window move, resize or menu operation will cause event
+// processing to block. This is due to how event processing is designed on those
+// platforms. You can use the window refresh callbacks
+// (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
+// the contents of your window when necessary during such operations.
+//
+// On some platforms, certain callbacks may be called outside of a call to one
+// of the event processing functions.
+//
+// If no windows exist, this function returns immediately. For synchronization
+// of threads in applications that do not create windows, use your threading
+// library of choice.
+//
+// Event processing is not required for joystick input to work.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (c *Context) WaitEvents() {
+	C.glfwWaitEvents()
+}
+
+// WaitEventsTimeout waits with timeout until events are queued and processes
+// them. timeout is the maximum amount of time, in seconds, to wait.
+//
+// This function puts the calling thread to sleep until at least one event is
+// available in the event queue, or until the specified timeout is reached. If
+// one or more events are available, it behaves exactly like
+// Context.PollEvents(), i.e. the events in the queue are processed and the
+// function then returns immediately. Processing events will cause the window
+// and input callbacks associated with those events to be called.
+//
+// The timeout value must be a positive finite number.
+//
+// Since not all events are associated with callbacks, this function may return
+// without a callback having been called even if you are monitoring all
+// callbacks.
+//
+// On some platforms, a window move, resize or menu operation will cause event
+// processing to block. This is due to how event processing is designed on those
+// platforms. You can use the window refresh callbacks
+// (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
+// the contents of your window when necessary during such operations.
+//
+// On some platforms, certain callbacks may be called outside of a call to one
+// of the event processing functions.
+//
+// If no windows exist, this function returns immediately. For synchronization
+// of threads in applications that do not create windows, use your threading
+// library of choice.
+//
+// Event processing is not required for joystick input to work.
+//
+// This function must not be called from a callback.
+//
+// This function must only be called from the main thread.
+func (c *Context) WaitEventsTimeout(timeout float64) {
+	C.glfwWaitEventsTimeout(C.double(timeout))
+}
+
+// PostEmptyEvent posts an empty event from the current thread to the event
+// queue, causing Context.WaitEvents() or Context.WaitEventsTimeout() to return.
+//
+// If no windows exist, this function returns immediately. For synchronization
+// of threads in applications that do not create windows, use your threading
+// library of choice.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function may be called from any thread.
+func (c *Context) PostEmptyEvent() {
+	C.glfwPostEmptyEvent()
 }
