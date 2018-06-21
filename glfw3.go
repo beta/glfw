@@ -2369,7 +2369,7 @@ func (win *Window) SetInputMode(mode InputMode, value int) {
 // Possible errors include NotInitialized and PlatformError.
 //
 // This function must only be called from the main thread.
-func GetKeyName(key Key, scancode int) string {
+func (c *Context) GetKeyName(key Key, scancode int) string {
 	return C.GoString(C.glfwGetKeyName(C.int(key), C.int(scancode)))
 }
 
@@ -2473,7 +2473,7 @@ func (win *Window) SetCursorPos(x, y float64) {
 // This function must not be called from a callback.
 //
 // This function must only be called from the main thread.
-func CreateCursor(image *Image, xhot, yhot int) *Cursor {
+func (c *Context) CreateCursor(image *Image, xhot, yhot int) *Cursor {
 	return (*Cursor)(C.glfwCreateCursor(image.c(), C.int(xhot), C.int(yhot)))
 }
 
@@ -2488,12 +2488,12 @@ func CreateCursor(image *Image, xhot, yhot int) *Cursor {
 // This function must not be called from a callback.
 //
 // This function must only be called from the main thread.
-func CreateStandardCursor(shape CursorShape) *Cursor {
+func (c *Context) CreateStandardCursor(shape CursorShape) *Cursor {
 	return (*Cursor)(C.glfwCreateStandardCursor(C.int(shape)))
 }
 
-// Destroy destroys a cursor previously created with CreateCursor. Any remaining
-// cursors will be destroyed by Context.Terminate().
+// Destroy destroys a cursor previously created with Context.CreateCursor(). Any
+// remaining cursors will be destroyed by Context.Terminate().
 //
 // Possible errors include NotInitialized and PlatformError.
 //
