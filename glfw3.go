@@ -3,6 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+// Package glfw3 is a hand-crafted Go binding for version 3.x of GLFW, an
+// open-source and multi-platform library for OpenGL.
 package glfw3
 
 /*
