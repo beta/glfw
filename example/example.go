@@ -1,20 +1,16 @@
-# GLFW3
+// Copyright (c) 2018 Beta Kuang
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-Go binding for version 3.x of [GLFW](http://www.glfw.org/), an open-source and multi-platform library for OpenGL.
-
-GLFW3 is at a very early stage and is still working in progress. Changes to the APIs are expected before the first release.
-
-## Example Code
-
-This example is translated from the example code in GLFW's [documentation](http://www.glfw.org/documentation.html).
-
-```go
 package main
 
 import (
 	"github.com/paperui/glfw3"
 )
 
+// This example is translated from the example code in GLFW's documentation
+// (http://www.glfw.org/documentation.html).
 func main() {
 	// Initialize the library.
 	ctx := glfw3.Init()
@@ -44,9 +40,3 @@ func main() {
 		ctx.PollEvents()
 	}
 }
-
-```
-
-## License
-
-MIT
