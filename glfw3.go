@@ -2998,3 +2998,300 @@ func _joystickCallback(cJoy, cEvent C.int) {
 		joystickCallback(joy, event)
 	}
 }
+
+// SetClipboardString sets the system clipboard to str, a UTF-8 encoded string.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// The function must only be called from the main thread.
+func (win *Window) SetClipboardString(str string) {
+	cStr := C.CString(str)
+	defer C.free(unsafe.Pointer(cStr))
+	C.glfwSetClipboardString(win.c(), cStr)
+}
+
+// GetClipboardString returns the contents of the system clipboard, if it
+// contains or is convertible to a UTF-8 encoded string. If the clipboard is
+// empty or if its contents cannot be converted, nil is returned and a
+// FormatUnavailable error is generated.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetClipboardString() string {
+	return C.GoString(C.glfwGetClipboardString(win.c()))
+}
+
+// GetTime returns the value of the GLFW timer. Unless the timer has been set
+// using Context.SetTime(), the timer measures time elapsed since GLFW was
+// initialized.
+//
+// The resolution of the timer is system dependent, but is usually on the order
+// of a few micro- or nanoseconds. It uses the highest-resolution monotonic time
+// source on each supported platform.
+//
+// Returns zero if an error occurred.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Reading and writing of the
+// internal timer offset is not atomic, so it needs to be externally
+// synchronized with calls to Context.SetTime().
+func (c *Context) GetTime() float64 {
+	return float64(C.glfwGetTime())
+}
+
+// SetTime sets the value of the GLFW timer. It then continues to count up from
+// that value. The value must be a positive finite number less than or equal to
+// 18446744073.0, which is approximately 584.5 years.
+//
+// Possible errors include NotInitialized and InvalidValue.
+//
+// The upper limit of the timer is calculated as floor((2^64 - 1) / 10^9) and is
+// due to implementations storing nanoseconds in 64 bits. The limit may be
+// increased in the future.
+//
+// This function may be called from any thread. Reading and writing of the
+// internal timer offset is not atomic, so it needs to be externally
+// synchronized with calls to Context.GetTime().
+func (c *Context) SetTime(time float64) {
+	C.glfwSetTime(C.double(time))
+}
+
+// GetTimerValue returns the current value of the raw timer, measured in 1 /
+// frequency seconds. To get the frequency, call Context.GetTimerFrequency().
+//
+// Returns zero if an error occurred.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread.
+func (c *Context) GetTimerValue() uint64 {
+	return uint64(C.glfwGetTimerValue())
+}
+
+// GetTimerFrequency returns the frequency, in Hz, of the raw timer.
+//
+// Returns zero if an error occurred.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread.
+func (c *Context) GetTimerFrequency() uint64 {
+	return uint64(C.glfwGetTimerFrequency())
+}
+
+// MakeContextCurrent makes the OpenGL or OpenGL ES context of win current on
+// the calling thread. A context can only be made current on a single thread
+// at a time and each thread can have only a single current context at a time.
+//
+// By default, making a context non-current implicitly forces a pipeline flush.
+// On machines that support GL_KHR_context_flush_control, you can control
+// whether a context performs this flush by setting the ContextReleaseBehavior
+// window hint.
+//
+// win must have an OpenGL or OpenGL ES context. Specifying a window without a
+// context will generate a NoWindowContext error.
+//
+// If win is nil, this function will detach the current context.
+//
+// Possible errors include NotInitialized, NoWindowContext and PlatformError.
+//
+// This function may be called from any thread.
+func (c *Context) MakeContextCurrent(win *Window) {
+	C.glfwMakeContextCurrent(win.c())
+}
+
+// GetCurrentContext returns the window whose OpenGL or OpenGL ES context is
+// current on the calling thread, or nil if no window's context is current.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread.
+func (c *Context) GetCurrentContext() *Window {
+	cWindow := C.glfwGetCurrentContext()
+	if unsafe.Pointer(cWindow) != C.NULL {
+		return (*Window)(cWindow)
+	}
+	return nil
+}
+
+// SwapBuffers swaps the front and back buffers of win when rendering with
+// OpenGL or OpenGL ES. If the swap interval is greater than zero, the GPU
+// driver waits the specified number of screen updates before swapping the
+// buffers.
+//
+// win must have an OpenGL or OpenGL ES context. Specifying a window without a
+// context will generate a NoWindowContext error.
+//
+// This function does not apply to Vulkan. If you are rendering with Vulkan, see
+// vkQueuePresentKHR instead.
+//
+// Possible errors include NotInitialized, NoWindowContext and PlatformError.
+//
+// For EGL, the context of the specified window must be current on the calling
+// thread.
+//
+// This function may be called from any thread.
+func (win *Window) SwapBuffers() {
+	C.glfwSwapBuffers(win.c())
+}
+
+// SwapInterval sets the swap interval for the current OpenGL or OpenGL ES
+// context, i.e. the number of screen updates to wait from the time
+// Window.SwapBuffers() was called before swapping the buffers and returning.
+// This is sometimes called vertical synchronization, vertical retrace
+// synchronization or just vsync.
+//
+// Contexts that support either of the WGL_EXT_swap_control_tear and
+// GLX_EXT_swap_control_tear extensions also accpet negative swap intervals,
+// which allow the driver to swap even if a frame arrives a little bit late.
+// You can check for the presence of these extensions using
+// Context.ExtensionSupported. For more information about swap tearing, see the
+// extension specifications.
+//
+// A context must be current on the calling thread. Calling this function
+// without a current context will cause a NoCurrentContext error.
+//
+// This function does not apply to Vulkan. If you are rendering with Vulkan, see
+// the present mode of your swapchain instead.
+//
+// interval is the minimum number of screen updates to wait for until the
+// buffers are swapped by Window.SwapBuffers().
+//
+// Possible errors include NotInitialized, NoCurrentContext and PlatformError.
+//
+// This function is not called during context creation, leaving the swap
+// interval set to whatever is the default on that platform. This is done
+// because some swap interval extensions used by GLFW do not allow the swap
+// interval to be reset to zero once it has been set to a non-zero value.
+//
+// Some GPU drivers do not honor the requested swap interval, either because of
+// a user setting that overrides the application's request or due to bugs in the
+// driver.
+//
+// This function may be called from any thread.
+func (c *Context) SwapInterval(interval int) {
+	C.glfwSwapInterval(C.int(interval))
+}
+
+// ExtensionSupported returns whether the specified API extension
+// (http://www.glfw.org/docs/latest/context_guide.html#context_glext) is
+// supported by the cuurent OpenGL or OpenGL ES context. It searches both for
+// client API extension and context creation API extensions.
+//
+// A context must be current on the calling thread. Calling this function
+// without a current context will cause a NoCurrentContext error.
+//
+// As this function retrieves and searches one or more extension strings each
+// call, it is recommended that you cache its results if it is going to be used
+// frequently. The extension strings will not change during the lifetime of a
+// context, so there is no danger in doing this.
+//
+// This function does not apply to Vulkan. If you are using Vulkan, see
+// Context.GetRequiredInstanceExtensions(),
+// vkEnumerateInstanceExtensionProperties and
+// vkEnumerateDeviceExtensionProperties instead.
+//
+// Possible errors include NotInitialized, NoCurrentContext, InvalidValue and
+// PlatformError.
+//
+// This function may be called from any thread.
+func (c *Context) ExtensionSupported(extension string) bool {
+	cExtension := C.CString(extension)
+	defer C.free(unsafe.Pointer(cExtension))
+	return int(C.glfwExtensionSupported(cExtension)) == True
+}
+
+// GetProcAddress returns the address of the specified OpenGL or OpenGL ES core
+// or extension function
+// (http://www.glfw.org/docs/latest/context_guide.html#context_glext), if it is
+// supported by the current context.
+//
+// A context must be current on the calling thread. Calling this function
+// without a current context will cause a NoCurrentContext error.
+//
+// This function does not apply to Vulkan. If you are rendering with Vulkan,
+// see Context.GetInstanceProcAddress(), vkGetInstanceProcAddr and
+// vkGetDeviceProcAddr instead.
+//
+// Returns the address of the function, or nil if an error occurred.
+//
+// Possible errors include NotInitialized, NoCurrentContext and PlatformError.
+//
+// The address of a given function is not guaranteed to be the same between
+// contexts.
+//
+// This function may return a non-nil address despite the associated version or
+// extension not being available. Always check the context version of extension
+// string first.
+//
+// The returned pointer is valid until the context is destroyed or the library
+// is terminated.
+//
+// This function may be called from any thread.
+func (c *Context) GetProcAddress(procName string) unsafe.Pointer {
+	cProcName := C.CString(procName)
+	defer C.free(unsafe.Pointer(cProcName))
+	return unsafe.Pointer(C.glfwGetProcAddress(cProcName))
+}
+
+// VulkanSupported returns whether the Vulkan loader has been found. This check
+// is performed by Init().
+//
+// The availability of a Vulkan loader does not by itself guarantee that window
+// surface creation or even device creation is possible. Call
+// Context.GetRequiredInstanceExtensinos to check whether the extensions
+// necessary for Vulkan surface creation are available and
+// Context.GetPhysicalDevicePresentationSupport to check whether a queue family
+// of a physical device supports image presentation.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread.
+func (c *Context) VulkanSupported() bool {
+	return int(C.glfwVulkanSupported()) == True
+}
+
+// GetRequiredInstanceExtensions returns a slice of names of Vulkan instance
+// extensions required by GLFW for creating Vulkan surfaces for GLFW windows. If
+// successful, the list will always contains VK_KHR_surface, so if you don't
+// require any additional extensions you can pass this list directly to the
+// vkInstanceCreateInfo struct.
+//
+// If Vulkan is not available on the machine, this function returns nil and
+// generates an APIUnavailable error. Call Context.VulkanSupported() to check
+// whether Vulkan is available.
+//
+// If Vulkan is available but no set of extensions allowing window surface
+// creation was found, this function returns nil. You may still use Vulkan for
+// off-screen rendering and compute work.
+//
+// Returns nil if an error occurred.
+//
+// Possible errors include NotInitializedand APIUnavailable.
+//
+// Additional extensions may be required by future versions of GLFW. You should
+// check if any extensions you wish to enable are already in the returned slice,
+// as it is an error to specify an extension more that once in the
+// vkInstanceCreateInfo struct.
+//
+// This function may be called from any thread.
+func (c *Context) GetRequiredInstanceExtensions() []string {
+	var cCount C.uint32_t
+	cExtensions := C.glfwGetRequiredInstanceExtensions(&cCount)
+	if unsafe.Pointer(cExtensions) != C.NULL {
+		count := uint32(cCount)
+		extensions := make([]string, 0, count)
+
+		var i uint32
+		for i = 0; i < count; i++ {
+			offset := unsafe.Sizeof(*cExtensions) * uintptr(i)
+			cExtension := (*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(cExtensions)) + offset))
+			extensions = append(extensions, C.GoString(cExtension))
+		}
+
+		return extensions
+	}
+	return nil
+}
