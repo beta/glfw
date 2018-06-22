@@ -6,14 +6,14 @@
 package main
 
 import (
-	"github.com/paperui/glfw3"
+	"github.com/paperui/glfw"
 )
 
 // This example is translated from the example code in GLFW's documentation
 // (http://www.glfw.org/documentation.html).
 func main() {
 	// Initialize the library.
-	ctx := glfw3.Init()
+	ctx := glfw.Init()
 	if ctx == nil {
 		panic("failed to initialize GLFW")
 	}

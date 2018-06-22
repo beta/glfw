@@ -3,9 +3,9 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-// Package glfw3 is a hand-crafted Go binding for version 3.x of GLFW, an
-// open-source and multi-platform library for OpenGL.
-package glfw3
+// Package glfw is a hand-crafted Go binding for GLFW, an open-source and
+// multi-platform library for OpenGL.
+package glfw
 
 /*
 #cgo pkg-config: glfw3
@@ -545,9 +545,10 @@ const (
 	//
 	// Analysis
 	//
-	// This is a bug in GLFW3, GLFW or the underlying operating system. Report
-	// the bug to our issue tracker (https://github.com/paperui/glfw3/issues) or
-	// GLFW's (https://github.com/glfw/glfw/issues).
+	// This is a bug in GLFW, the GLFW library or the underlying operating
+	// system. Report the bug to our issue tracker
+	// (https://github.com/paperui/glfw/issues) or the GLFW library's
+	// (https://github.com/glfw/glfw/issues).
 	OutOfMemory Error = 0x00010005
 	// APIUnavailable : GLFW could not find support for the requested API on the
 	// system.
@@ -585,10 +586,11 @@ const (
 	//
 	// Analysis
 	//
-	// This is a bug or configuration error in GLFW3, GLFW, the underlying
-	// operating system or its drivers, or a lack of required resources. Report
-	// the issue to our issue tracker (https://github.com/paperui/glfw3/issues)
-	// or GLFW's (https://github.com/glfw/glfw/issues).
+	// This is a bug or configuration error in GLFW, the GLFW library, the
+	// underlying operating system or its drivers, or a lack of required
+	// resources. Report the issue to our issue tracker
+	// (https://github.com/paperui/glfw/issues) or the GLFW library's
+	// (https://github.com/glfw/glfw/issues).
 	PlatformError Error = 0x00010008
 	// FormatUnavailable : The requested format is not supported or available.
 	//

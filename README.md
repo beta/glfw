@@ -1,14 +1,14 @@
-# GLFW3
+# GLFW
 
-Go binding for version 3.x of [GLFW](http://www.glfw.org/), an open-source and multi-platform library for OpenGL.
+Go binding for [GLFW](http://www.glfw.org/), an open-source and multi-platform library for OpenGL.
 
-GLFW3 is at a very early stage and is still working in progress. Changes to the APIs are expected before the first release.
+GLFW is at a very early stage and is still working in progress. Changes to the APIs are expected before the first release.
 
 ## Versioning
 
-Versioning of GLFW3 is done with Git tags following [semantic versioning](https://semver.org/) (`major.minor.patch`). The major and minor version numbers are same to those of the targeted GLFW version.
+Versioning of GLFW is done with Git tags following [semantic versioning](https://semver.org/) (`major.minor.patch`). The major and minor version numbers are same to those of the targeted GLFW library version.
 
-The patch version number, however, has no connection with the GLFW library. GLFW3 will use the latest revision of the GLFW library on each update.
+The patch version number, however, has no connection with the GLFW library. GLFW will use the latest revision of the GLFW library on each update.
 
 ## Example Code
 
@@ -18,7 +18,7 @@ This example is translated from the example code in GLFW's [documentation](http:
 package main
 
 import (
-	"github.com/paperui/glfw3"
+	"github.com/paperui/glfw"
 )
 
 func main() {
