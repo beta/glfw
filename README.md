@@ -53,6 +53,10 @@ func main() {
 
 ```
 
+## Credits
+
+Thanks to [go-gl/glfw](https://github.com/go-gl/glfw) for reference on the Cgo build tags.
+
 ## License
 
 MIT

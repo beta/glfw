@@ -8,9 +8,22 @@
 package glfw
 
 /*
-#cgo pkg-config: glfw3
+// Windows build tags.
+#cgo darwin CFLAGS: -D_GLFW_COCOA -D_GLFW_USE_CHDIR -D_GLFW_USE_MENUBAR -D_GLFW_USE_RETINA -Wno-deprecated-declarations
+#cgo darwin LDFLAGS: -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo
+
+// Darwin build tags.
+#cgo windows CFLAGS: -D_GLFW_WIN32 -Iglfw/deps/mingw
+#cgo windows LDFLAGS: -lopengl32 -lgdi32
+
+// Linux build tags.
+#cgo linux,!wayland CFLAGS: -D_GLFW_X11
+#cgo linux,wayland CFLAGS: -D_GLFW_WAYLAND -D_GNU_SOURCE
+#cgo linux,!wayland LDFLAGS: -lGL -lX11 -lXrandr -lXxf86vm -lXi -lXcursor -lm -lXinerama -ldl -lrt
+#cgo linux,wayland LDFLAGS: -lGL -lwayland-client -lwayland-cursor -lwayland-egl -lxkbcommon -lm -ldl -lrt
+
 #include <stdlib.h>
-#include <GLFW/glfw3.h>
+#include "glfw/include/GLFW/glfw3.h"
 
 // Error callback.
 
