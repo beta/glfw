@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/paperui/glfw"
+	"github.com/beta/glfw"
 )
 
 // This example is translated from the example code in GLFW's documentation

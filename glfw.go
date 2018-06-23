@@ -568,7 +568,7 @@ const (
 	//
 	// This is a bug in GLFW, the GLFW library or the underlying operating
 	// system. Report the bug to our issue tracker
-	// (https://github.com/paperui/glfw/issues) or the GLFW library's
+	// (https://github.com/beta/glfw/issues) or the GLFW library's
 	// (https://github.com/glfw/glfw/issues).
 	OutOfMemory Error = 0x00010005
 	// APIUnavailable : GLFW could not find support for the requested API on the
@@ -610,7 +610,7 @@ const (
 	// This is a bug or configuration error in GLFW, the GLFW library, the
 	// underlying operating system or its drivers, or a lack of required
 	// resources. Report the issue to our issue tracker
-	// (https://github.com/paperui/glfw/issues) or the GLFW library's
+	// (https://github.com/beta/glfw/issues) or the GLFW library's
 	// (https://github.com/glfw/glfw/issues).
 	PlatformError Error = 0x00010008
 	// FormatUnavailable : The requested format is not supported or available.
