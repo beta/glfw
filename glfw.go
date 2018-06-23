@@ -23,6 +23,7 @@ package glfw
 #cgo linux,wayland LDFLAGS: -lGL -lwayland-client -lwayland-cursor -lwayland-egl -lxkbcommon -lm -ldl -lrt
 
 #include <stdlib.h>
+#include <string.h>
 #include "glfw/include/GLFW/glfw3.h"
 
 // Error callback.
@@ -31,7 +32,9 @@ void _errorCallback(int, char*);
 
 // Workaround due to that Go does not support const function params.
 static void _errorCallbackConst(int err, const char* desc) {
-	_errorCallback(err, desc);
+	char* desc_ = strdup(desc);
+	_errorCallback(err, desc_);
+	free(desc_);
 }
 
 static void goSetErrorCallback() {
@@ -228,7 +231,12 @@ void _dropCallback(GLFWwindow*, int, char**);
 
 // Workaround due to that Go does not support const function params.
 static void _dropCallbackConst(GLFWwindow* window, int count, const char** paths) {
-	_dropCallback(window, count, paths);
+	char** paths_ = malloc(count * sizeof(char*));
+	for (int i = 0; i < count; i++) {
+		paths_[i] = strdup(paths[i]);
+	}
+	_dropCallback(window, count, paths_);
+	free(paths_);
 }
 
 static void goSetDropCallback(GLFWwindow* window) {
