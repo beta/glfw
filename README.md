@@ -23,7 +23,7 @@ import (
 
 func main() {
 	// Initialize the library.
-	ctx := glfw3.Init()
+	ctx := glfw.Init()
 	if ctx == nil {
 		panic("failed to initialize GLFW")
 	}
