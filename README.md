@@ -55,6 +55,8 @@ func main() {
 
 ## Credits
 
+This project uses source code of [GLFW](http://www.glfw.org/) under the zlib/libpng license. See `glfw/COPYING.txt` for detail.
+
 Thanks to [go-gl/glfw](https://github.com/go-gl/glfw) for reference on the Cgo build tags.
 
 ## License
