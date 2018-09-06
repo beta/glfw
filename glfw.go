@@ -9,12 +9,12 @@ package glfw
 
 /*
 // Windows build tags.
-#cgo darwin CFLAGS: -D_GLFW_COCOA -D_GLFW_USE_CHDIR -D_GLFW_USE_MENUBAR -D_GLFW_USE_RETINA -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo
-
-// Darwin build tags.
 #cgo windows CFLAGS: -D_GLFW_WIN32 -Iglfw/deps/mingw
 #cgo windows LDFLAGS: -lopengl32 -lgdi32
+
+// Darwin build tags.
+#cgo darwin CFLAGS: -D_GLFW_COCOA -D_GLFW_USE_CHDIR -D_GLFW_USE_MENUBAR -D_GLFW_USE_RETINA -Wno-deprecated-declarations
+#cgo darwin LDFLAGS: -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo
 
 // Linux build tags.
 #cgo linux,!wayland CFLAGS: -D_GLFW_X11
