@@ -129,6 +129,18 @@ static void goRemoveWindowIconifyCallback(GLFWwindow* window) {
 	glfwSetWindowIconifyCallback(window, NULL);
 }
 
+// Window maximize callback.
+
+void _windowMaximizeCallback(GLFWwindow*, int);
+
+static void goSetWindowMaximizeCallback(GLFWwindow* window) {
+	glfwSetWindowMaximizeCallback(window, _windowMaximizeCallback);
+}
+
+static void goRemoveWindowMaximizeCallback(GLFWwindow* window) {
+	glfwSetWindowMaximizeCallback(window, NULL);
+}
+
 // Framebuffer size callback.
 
 void _framebufferSizeCallback(GLFWwindow*, int, int);
@@ -139,6 +151,18 @@ static void goSetFramebufferSizeCallback(GLFWwindow* window) {
 
 static void goRemoveFramebufferSizeCallback(GLFWwindow* window) {
 	glfwSetFramebufferSizeCallback(window, NULL);
+}
+
+// Window content scale callback.
+
+void _windowContentScaleCallback(GLFWwindow*, float, float);
+
+static void goSetWindowContentScaleCallback(GLFWwindow* window) {
+	glfwSetWindowContentScaleCallback(window, _windowContentScaleCallback);
+}
+
+static void goRemoveWindowContentScaleCallback(GLFWwindow* window) {
+	glfwSetWindowContentScaleCallback(window, NULL);
 }
 
 // Key callback.
@@ -272,12 +296,12 @@ const (
 	//
 	// This is incremented when features are added to the API but it remains
 	// backward-compatible.
-	VersionMinor uint = 2
+	VersionMinor uint = 3
 	// VersionRevision : The revision number of the GLFW library.
 	//
 	// This is incremented when a bug fix release is made that does not contain
 	// any API changes.
-	VersionRevision uint = 1
+	VersionRevision uint = 0
 )
 
 // Action is a key and button action.
@@ -290,6 +314,22 @@ const (
 	Press Action = 1
 	// Repeat : The key was held down until it repeated.
 	Repeat Action = 2
+)
+
+// HatState is a joystick hat state.
+type HatState int
+
+// Joystick hat states.
+const (
+	HatCentered  HatState = 0
+	HatUp        HatState = 1
+	HatRight     HatState = 2
+	HatDown      HatState = 4
+	HatLeft      HatState = 8
+	HatRightUp   HatState = HatRight | HatUp
+	HatRightDown HatState = HatRight | HatDown
+	HatLeftUp    HatState = HatLeft | HatUp
+	HatLeftDown  HatState = HatLeft | HatDown
 )
 
 // Key is a keyboard key.
@@ -474,6 +514,12 @@ const (
 	ModAlt ModifierFlag = 0x0004
 	// ModSuper : If this bit is set one or more Super keys were held down.
 	ModSuper ModifierFlag = 0x0008
+	// ModCapsLock : If this bit is set the Caps Lock key is enabled and the
+	// LockKeyModsMode input mode is set.
+	ModCapsLock ModifierFlag = 0x0010
+	// ModNumLock : If this bit is set the Num Lock key is enabled and the
+	// LockKeyModsMode input mode is set.
+	ModNumLock ModifierFlag = 0x0020
 )
 
 // Button is a mouse button.
@@ -519,10 +565,54 @@ const (
 	JoystickLast Joystick = Joystick16
 )
 
+// GamepadButton is a gamepad button.
+type GamepadButton int
+
+// Gamepad buttons.
+const (
+	GamepadButtonA           GamepadButton = 0
+	GamepadButtonB           GamepadButton = 1
+	GamepadButtonX           GamepadButton = 2
+	GamepadButtonY           GamepadButton = 3
+	GamepadButtonLeftBumper  GamepadButton = 4
+	GamepadButtonRightBumper GamepadButton = 5
+	GamepadButtonBack        GamepadButton = 6
+	GamepadButtonStart       GamepadButton = 7
+	GamepadButtonGuide       GamepadButton = 8
+	GamepadButtonLeftThumb   GamepadButton = 9
+	GamepadButtonRightThumb  GamepadButton = 10
+	GamepadButtonDPadUp      GamepadButton = 11
+	GamepadButtonDPadRight   GamepadButton = 12
+	GamepadButtonDPadDown    GamepadButton = 13
+	GamepadButtonDPadLeft    GamepadButton = 14
+	GamepadButtonLast        GamepadButton = GamepadButtonDPadLeft
+
+	GamepadButtonCross    GamepadButton = GamepadButtonA
+	GamepadButtonCircle   GamepadButton = GamepadButtonB
+	GamepadButtonSquare   GamepadButton = GamepadButtonX
+	GamepadButtonTriangle GamepadButton = GamepadButtonY
+)
+
+// GamepadAxis is a gamepad axis.
+type GamepadAxis int
+
+// Gamepad axes.
+const (
+	GamepadAxisLeftX        GamepadAxis = 0
+	GamepadAxisLeftY        GamepadAxis = 1
+	GamepadAxisRightX       GamepadAxis = 2
+	GamepadAxisRightY       GamepadAxis = 3
+	GamepadAxisLeftTrigger  GamepadAxis = 4
+	GamepadAxisRightTrigger GamepadAxis = 5
+	GamepadAxisLast         GamepadAxis = GamepadAxisRightTrigger
+)
+
 // Error represents an error code.
 type Error int
 
 const (
+	// NoError : No error has occurred.
+	NoError Error = 0
 	// NotInitialized : GLFW has not been initialized.
 	//
 	// This occurs if a GLFW function was called that must not be called unless
@@ -582,8 +672,8 @@ const (
 	//
 	// Some pre-installed Windows graphics drivers do not support OpenGL. AMD
 	// only supports OpenGL ES via EGL, while Nvidia and Intel only support it
-	// via a WGL or GLX extension. OS X does not provide OpenGL ES at all. The
-	// Mesa EGL, OpenGL and OpenGL ES libraries do not interface with the
+	// via a WGL or GLX extension. macOS does not provide OpenGL ES at all.
+	// The Mesa EGL, OpenGL and OpenGL ES libraries do not interface with the
 	// Nvidia binary driver. Older graphics drivers do not support Vulkan.
 	APIUnavailable Error = 0x00010006
 	// VersionUnavailable : The requested OpenGL or OpenGL ES version (including
@@ -645,50 +735,112 @@ const (
 // Hint is a bit field for creating windows and context.
 type Hint int
 
-// Hints.
 const (
-	// Window related hints.
-	Focused     Hint = 0x00020001
-	Iconified   Hint = 0x00020002
-	Resizable   Hint = 0x00020003
-	Visible     Hint = 0x00020004
-	Decorated   Hint = 0x00020005
+	// Focused : Input focus window hint and attribute.
+	Focused Hint = 0x00020001
+	// Iconified : Window iconification window attribute.
+	Iconified Hint = 0x00020002
+	// Resizable : Window resize-ability window hint and attribute.
+	Resizable Hint = 0x00020003
+	// Visible : Window visibility window hint and attribute.
+	Visible Hint = 0x00020004
+	// Decorated : Window decoration window hint and attribute.
+	Decorated Hint = 0x00020005
+	// AutoIconify : Window auto-iconification window hint and attribute.
 	AutoIconify Hint = 0x00020006
-	Floating    Hint = 0x00020007
-	Maximized   Hint = 0x00020008
+	// Floating : Window floating window hint and attribute.
+	Floating Hint = 0x00020007
+	// Maximized : Window maximization window hint and attribute.
+	Maximized Hint = 0x00020008
+	// CenterCursor : Cursor centering window hint.
+	CenterCursor Hint = 0x00020009
+	// TransparentFramebuffer : Window framebuffer transparency hint and
+	// attribute.
+	TransparentFramebuffer Hint = 0x0002000A
+	// Hovered : Mouse cursor hover window attribute.
+	Hovered Hint = 0x0002000B
+	// FocusOnShow : Input focus on calling show window hint and attribute.
+	FocusOnShow Hint = 0x0002000C
 
-	// Framebuffer related hints.
-	RedBits        Hint = 0x00021001
-	GreenBits      Hint = 0x00021002
-	BlueBits       Hint = 0x00021003
-	AlphaBits      Hint = 0x00021004
-	DepthBits      Hint = 0x00021005
-	StencilBits    Hint = 0x00021006
-	AccumRedBits   Hint = 0x00021007
+	// RedBits : Framebuffer bit depth hint.
+	RedBits Hint = 0x00021001
+	// GreenBits : Framebuffer bit depth hint.
+	GreenBits Hint = 0x00021002
+	// BlueBits : Framebuffer bit depth hint.
+	BlueBits Hint = 0x00021003
+	// AlphaBits : Framebuffer bit depth hint.
+	AlphaBits Hint = 0x00021004
+	// DepthBits : Framebuffer bit depth hint.
+	DepthBits Hint = 0x00021005
+	// StencilBits : Framebuffer bit depth hint.
+	StencilBits Hint = 0x00021006
+	// AccumRedBits : Framebuffer bit depth hint.
+	AccumRedBits Hint = 0x00021007
+	// AccumGreenBits : Framebuffer bit depth hint.
 	AccumGreenBits Hint = 0x00021008
-	AccumBlueBits  Hint = 0x00021009
+	// AccumBlueBits : Framebuffer bit depth hint.
+	AccumBlueBits Hint = 0x00021009
+	// AccumAlphaBits : Framebuffer bit depth hint.
 	AccumAlphaBits Hint = 0x0002100A
-	AuxBuffers     Hint = 0x0002100B
-	Stereo         Hint = 0x0002100C
-	Samples        Hint = 0x0002100D
-	SRGBCapable    Hint = 0x0002100E
-	Doublebuffer   Hint = 0x00021010
-
-	// Monitor related hints.
+	// AuxBuffers : Framebuffer auxiliary buffer hint.
+	AuxBuffers Hint = 0x0002100B
+	// Stereo : OpenGL stereoscopic rendering hint.
+	Stereo Hint = 0x0002100C
+	// Samples : Framebuffer MSAA samples hint.
+	Samples Hint = 0x0002100D
+	// SRGBCapable : Framebuffer sRGB hint.
+	SRGBCapable Hint = 0x0002100E
+	// RefreshRate : Monitor refresh rate hint.
 	RefreshRate Hint = 0x0002100F
+	// Doublebuffer : Framebuffer double buffering hint.
+	Doublebuffer Hint = 0x00021010
 
-	// Context related hints.
-	ClientAPI              Hint = 0x00022001
-	ContextCreationAPI     Hint = 0x0002200B
-	ContextVersionMajor    Hint = 0x00022002
-	ContextVersionMinor    Hint = 0x00022003
-	ContextRevision        Hint = 0x00022004
-	ContextRobustness      Hint = 0x00022005
-	OpenGLForwardCompat    Hint = 0x00022006
-	OpenGLDebugContext     Hint = 0x00022007
-	OpenGLProfile          Hint = 0x00022008
+	// ClientAPI : Context client API hint and attribute.
+	ClientAPI Hint = 0x00022001
+	// ContextVersionMajor : Context client API major version hint and
+	// attribute.
+	ContextVersionMajor Hint = 0x00022002
+	// ContextVersionMinor : Context client API minor version hint and
+	// attribute.
+	ContextVersionMinor Hint = 0x00022003
+	// ContextRevision : Context client API revision number hint and attribute.
+	ContextRevision Hint = 0x00022004
+	// ContextRobustness : Context robustness hint and attribute.
+	ContextRobustness Hint = 0x00022005
+	// OpenGLForwardCompat : OpenGL forward-compatibility hint and attribute.
+	OpenGLForwardCompat Hint = 0x00022006
+	// OpenGLDebugContext : OpenGL debug context hint and attribute.
+	OpenGLDebugContext Hint = 0x00022007
+	// OpenGLProfile : OpenGL profile hint and attribute.
+	OpenGLProfile Hint = 0x00022008
+	// ContextReleaseBehavior : Context flush-on-release hint and attribute.
 	ContextReleaseBehavior Hint = 0x00022009
-	ContextNoError         Hint = 0x0002200A
+	// ContextNoError : Context error suppression hint and attribute.
+	ContextNoError Hint = 0x0002200A
+	// ContextCreationAPI : Context creation API hint and attribute.
+	ContextCreationAPI Hint = 0x0002200B
+	// ScaleToMonitor : Window content area scaling window hint.
+	ScaleToMonitor Hint = 0x0002200C
+
+	// CocoaRetinaFramebuffer : macOS specific window hint.
+	CocoaRetinaFramebuffer Hint = 0x00023001
+	// CocoaFrameName : macOS specific window hint.
+	CocoaFrameName Hint = 0x00023002
+	// CocoaGraphicsSwitching : macOS specific window hint.
+	CocoaGraphicsSwitching Hint = 0x00023003
+
+	// X11ClassName : X11 specific window hint.
+	X11ClassName Hint = 0x00024001
+	// X11InstanceName : X11 specific window hint.
+	X11InstanceName Hint = 0x00024002
+
+	// JoystickHatButtons : Joystick hat buttons init hint.
+	JoystickHatButtons Hint = 0x00050001
+
+	// CocoaChdirResources : macOS specific init hint.
+	CocoaChdirResources Hint = 0x00051001
+	// CocoaMenubar : macOS specific init hint.
+	CocoaMenubar Hint = 0x00051002
 )
 
 // HintValue is the value for a hint.
@@ -704,24 +856,25 @@ const (
 	OpenGLAPI   HintValue = 0x00030001
 	OpenGLESAPI HintValue = 0x00030002
 
-	// Values for ContextCreationAPI.
-	NativeContextAPI HintValue = 0x00036001
-	EGLContextAPI    HintValue = 0x00036002
+	// Values for ContextRobustness.
+	NoRobustness        HintValue = 0
+	NoResetNotification HintValue = 0x00031001
+	LoseContextOnReset  HintValue = 0x00031002
 
 	// Values for OpenGLProfile.
 	OpenGLAnyProfile    HintValue = 0
 	OpenGLCoreProfile   HintValue = 0x00032001
 	OpenGLCompatProfile HintValue = 0x00032002
 
-	// Values for ContextRobustness.
-	NoRobustness        HintValue = 0
-	NoResetNotification HintValue = 0x00031001
-	LoseContextOnReset  HintValue = 0x00031002
-
 	// Values for ContextReleaseBehavior.
 	AnyReleaseBehavior   HintValue = 0
 	ReleaseBehaviorFlush HintValue = 0x00035001
 	ReleaseBehaviorNone  HintValue = 0x00035002
+
+	// Values for ContextCreationAPI.
+	NativeContextAPI HintValue = 0x00036001
+	EGLContextAPI    HintValue = 0x00036002
+	OSMesaContextAPI HintValue = 0x00036003
 )
 
 // InputMode specifies the input mode.
@@ -729,9 +882,11 @@ type InputMode int
 
 // Input modes.
 const (
-	CursorMode             = 0x00033001
-	StickyKeysMode         = 0x00033002
-	StickyMouseButtonsMode = 0x00033003
+	CursorMode             InputMode = 0x00033001
+	StickyKeysMode         InputMode = 0x00033002
+	StickyMouseButtonsMode InputMode = 0x00033003
+	LockKeyModsMode        InputMode = 0x00033004
+	RawMouseMotionMode     InputMode = 0x00033005
 )
 
 // CursorModeValue specifies mode of the cursor when the input mode is
@@ -808,7 +963,7 @@ type ErrorCallback func(err Error, desc string)
 // WindowPosCallback is the function type for window position callbacks.
 //
 // win is the window that was moved. x and y are the new x- and y-coordinate,
-// in screen coordinates, of the upper-left corner of the client area of the
+// in screen coordinates, of the upper-left corner of the content area of the
 // window.
 type WindowPosCallback func(win *Window, x, y int)
 
@@ -842,12 +997,26 @@ type WindowFocusCallback func(win *Window, focused bool)
 // window was iconified, or false if it was restored.
 type WindowIconifyCallback func(win *Window, iconified bool)
 
+// WindowMaximizeCallback is the function type for window maximize/restore
+// callbacks.
+//
+// win is the window that was maximized or restored. maximized is true if the
+// window was maximized, or false if it was restored.
+type WindowMaximizeCallback func(win *Window, maximized bool)
+
 // FramebufferSizeCallback is the function type for framebuffer resize
 // callbacks.
 //
 // win is the window whose framebuffer was resized. width and height are the new
 // width and height, in pixels, of the framebuffer.
 type FramebufferSizeCallback func(win *Window, width, height int)
+
+// WindowContentScaleCallback is the function type for window content scale
+// callbacks.
+//
+// win is the window whose content scale changed. xScale and yScale are the new
+// x- and y-axis content scale of the window.
+type WindowContentScaleCallback func(win *Window, xScale, yScale float32)
 
 // MouseButtonCallback is the function type for mouse button callbacks.
 //
@@ -859,13 +1028,13 @@ type MouseButtonCallback func(win *Window, button Button, action Action, mods Mo
 // CursorPosCallback is the function type for cursor position callbacks.
 //
 // win is the window that received the event. x and y are the new x- and
-// y-coordinate, relative to the left/top edge of the client area.
+// y-coordinate, relative to the left/top edge of the content area.
 type CursorPosCallback func(win *Window, x, y float64)
 
 // CursorEnterCallback is the function type for cursor enter/leave callbacks.
 //
 // win is the window that received the event. entered is true if the cursor
-// entered the window's client area, or false if it left it.
+// entered the window's content area, or false if it left it.
 type CursorEnterCallback func(win *Window, entered bool)
 
 // ScrollCallback is the function type for scroll callbacks.
@@ -895,6 +1064,8 @@ type CharCallback func(win *Window, codepoint rune)
 // win is the window that received the event. codepoint is the Unicode code
 // point of the character. mods is a bit field describing which modifier keys
 // were held down.
+//
+// Scheduled for removal in version 4.0.
 type CharModsCallback func(win *Window, codepoint rune, mods ModifierFlag)
 
 // DropCallback is the function type for file drop callbacks.
@@ -906,14 +1077,14 @@ type DropCallback func(win *Window, paths []string)
 // MonitorCallback is the function type for monitor configuration callbacks.
 //
 // monitor is the monitor that was connected or disconnected. event is one of
-// Connected or Disconnected.
+// Connected or Disconnected. Remaining values reserved for future use.
 type MonitorCallback func(monitor *Monitor, event ConnectionEvent)
 
 // JoystickCallback is the function type for joystick configuration callbacks.
 //
-// joy is the joystick that was connected or disconnected. event is one of
-// Connected or Disconnected.
-type JoystickCallback func(joy Joystick, event ConnectionEvent)
+// jid is the joystick that was connected or disconnected. event is one of
+// Connected or Disconnected. Remaining values reserved for future use.
+type JoystickCallback func(jid Joystick, event ConnectionEvent)
 
 // WindowCallbacks contains all the callback functions set for a window.
 type WindowCallbacks struct {
@@ -923,7 +1094,9 @@ type WindowCallbacks struct {
 	RefreshCallback         WindowRefreshCallback
 	FocusCallback           WindowFocusCallback
 	IconifyCallback         WindowIconifyCallback
+	MaximizeCallback        WindowMaximizeCallback
 	FramebufferSizeCallback FramebufferSizeCallback
+	ContentScaleCallback    WindowContentScaleCallback
 	MouseButtonCallback     MouseButtonCallback
 	CursorPosCallback       CursorPosCallback
 	CursorEnterCallback     CursorEnterCallback
@@ -968,7 +1141,8 @@ type GammaRamp struct {
 	Blue []uint16
 }
 
-// Image is the Image data.
+// Image describes a single 2D image. See the documentation of each related
+// function what the expected pixel format is.
 type Image struct {
 	// Width : The width, in pixels, of this image.
 	Width int
@@ -994,6 +1168,33 @@ func (image *Image) c() *C.GLFWimage {
 	return &cImage
 }
 
+// GamepadState describes the input state of a gamepad.
+type GamepadState struct {
+	// Buttons : The states of each gamepad button, Press or Release.
+	Buttons [15]Action
+	// Axes : The states of each gamepad axis, in the range -1.0 to 1.0
+	// inclusive.
+	Axes [6]float32
+}
+
+func (state *GamepadState) c() *C.GLFWgamepadstate {
+	cButtons := [15]C.uchar{}
+	for i, button := range state.Buttons {
+		cButtons[i] = C.uchar(button)
+	}
+
+	cAxes := [6]C.float{}
+	for i, axis := range state.Axes {
+		cAxes[i] = C.float(axis)
+	}
+
+	cState := C.GLFWgamepadstate{
+		buttons: cButtons,
+		axes:    cAxes,
+	}
+	return &cState
+}
+
 // Context is an entry point of all GLFW APIs that require initialization.
 type Context struct{}
 
@@ -1013,10 +1214,9 @@ type Context struct{}
 // Returns a Context if successful, or nil if an error occurred. Possible errors
 // include PlatformError.
 //
-// On OS X this function will change the current directory of the application to
-// the Contents/Resources subdirectory of the application's bundle, if present.
-// This can be disabled with a compile-time option
-// (http://www.glfw.org/docs/latest/compile_guide.html#compile_options_osx).
+// On macOS this function will change the current directory of the application
+// to the Contents/Resources subdirectory of the application's bundle, if
+// present. This can be disabled with the CocoaChdirResources init hint.
 //
 // This function must only be called from the main thread.
 func Init() *Context {
@@ -1047,6 +1247,36 @@ func Init() *Context {
 // This function must only be called from the main thread.
 func (c *Context) Terminate() {
 	C.glfwTerminate()
+}
+
+// InitHint sets the specified init hint to the desired value.
+//
+// This function sets hints for the next initialization of GLFW.
+//
+// The values you set hints to are never reset by GLFW, but they only take
+// effect during initialization. Once GLFW has been initialized, any values you
+// set will be ignored until the library is terminated and initialized again.
+//
+// Some hints are platform specific. These may be set on any platform but they
+// will only affect their specific platform. Other platforms will ignore them.
+// Setting these hints requires no platform specific headers or functions.
+//
+// hint is the init hint to set. value is the new value of the init hint.
+//
+// Possible errors include InvalidEnum and InvalidValue.
+//
+// This function must only be called from the main thread.
+func InitHint(hint Hint, value HintValue) {
+	C.glfwInitHint(C.int(hint), C.int(value))
+}
+
+// InitHintBool is a shortcut for setting init hints with boolean values.
+func InitHintBool(hint Hint, value bool) {
+	if value {
+		InitHint(hint, True)
+	} else {
+		InitHint(hint, False)
+	}
 }
 
 // GetVersion retrieves the version of the GLFW library.
@@ -1080,10 +1310,30 @@ func GetVersionString() string {
 	return C.GoString(C.glfwGetVersionString())
 }
 
+// GetError returns and clears the last error for the calling thread.
+//
+// This function returns and clears the error code of the last error that
+// occurred on the calling thread, and optionally a UTF-8 encoded human-readable
+// description of it. If no error has occurred since the last call, it returns
+// NoError and the description is "".
+//
+// This function may be called before Init.
+//
+// This function may be called from any thread.
+//
+// TODO: Currently the description will always be returned as "". Should be
+// implemented.
+func GetError() (Error, string) {
+	return Error(C.glfwGetError((**C.char)(C.NULL))), ""
+}
+
 // SetErrorCallback sets the error callback.
 //
 // This function sets the error callback, which is called with an error code and
 // a humen-readable description each time a GLFW error occurs.
+//
+// The error code is set before the callback is called. Calling GetError from
+// the error callback will return the same value as the error code argument.
 //
 // The error callback is called on the thread where the error occurred. If you
 // are using GLFW from multiple thread, your error callback needs to be written
@@ -1097,7 +1347,7 @@ func GetVersionString() string {
 // Returns the previously set callback, or nil if no callback was set.
 //
 // This function must only be called from the main thread.
-func (c *Context) SetErrorCallback(callback ErrorCallback) ErrorCallback {
+func SetErrorCallback(callback ErrorCallback) ErrorCallback {
 	previousCallback := errorCallback
 	errorCallback = callback
 	if callback != nil {
@@ -1168,8 +1418,27 @@ func (c *Context) GetPrimaryMonitor() *Monitor {
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetPos() (x, y int) {
 	var cX, cY C.int
-	C.glfwGetMonitorPos((*C.GLFWmonitor)(monitor), &cX, &cY)
+	C.glfwGetMonitorPos(monitor.c(), &cX, &cY)
 	x, y = int(cX), int(cY)
+	return
+}
+
+// GetWorkarea retrives the work area of the monitor.
+//
+// This function returns the position, in screen coordinates, of the upper-left
+// corner of the work area of the specified monitor along with the work area
+// size in screen coordinates. The work area is defined as the area of the
+// monitor not occluded by the operating system task bar where present. If no
+// task bar exists then the work area is the monitor resolution in screen
+// coordinates.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetWorkarea() (x, y, width, height int) {
+	var cX, cY, cWidth, cHeight C.int
+	C.glfwGetMonitorWorkarea(monitor.c(), &cX, &cY, &cWidth, &cHeight)
+	x, y, width, height = int(cX), int(cY), int(cWidth), int(cHeight)
 	return
 }
 
@@ -1191,8 +1460,32 @@ func (monitor *Monitor) GetPos() (x, y int) {
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetPhysicalSize() (widthMM, heightMM int) {
 	var cWidth, cHeight C.int
-	C.glfwGetMonitorPhysicalSize((*C.GLFWmonitor)(monitor), &cWidth, &cHeight)
+	C.glfwGetMonitorPhysicalSize(monitor.c(), &cWidth, &cHeight)
 	widthMM, heightMM = int(cWidth), int(cHeight)
+	return
+}
+
+// GetContentScale Retrieves the content scale for the specified monitor.
+//
+// This function retrieves the content scale for the specified monitor. The
+// content scale is the ratio between the current DPI and the platform's default
+// DPI. This is especially important for text and any UI elements. If the pixel
+// dimensions of your UI scaled by this look appropriate on your machine then it
+// should appear at a reasonable size on other machines regardless of their DPI
+// and scaling settings. This relies on the system DPI and scaling settings
+// being somewhat correct.
+//
+// The content scale may depend on both the monitor resolution and pixel density
+// and on user settings. It may be very different from the raw DPI calculated
+// from the physical size and current resolution.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (monitor *Monitor) GetContentScale() (xScale, yScale float32) {
+	var cXScale, cYScale C.float
+	C.glfwGetMonitorContentScale(monitor.c(), &cXScale, &cYScale)
+	xScale, yScale = float32(cXScale), float32(cYScale)
 	return
 }
 
@@ -1206,7 +1499,38 @@ func (monitor *Monitor) GetPhysicalSize() (widthMM, heightMM int) {
 //
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetName() string {
-	return C.GoString(C.glfwGetMonitorName((*C.GLFWmonitor)(monitor)))
+	return C.GoString(C.glfwGetMonitorName(monitor.c()))
+}
+
+// SetUserPointer sets the user pointer of the specified monitor.
+//
+// This function sets the user-defined pointer of the specified monitor. The
+// current value is retained until the monitor is disconnected. The initial
+// value is nil.
+//
+// This function may be called from the monitor callback, even for a monitor
+// that is being disconnected.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (monitor *Monitor) SetUserPointer(pointer unsafe.Pointer) {
+	C.glfwSetMonitorUserPointer(monitor.c(), pointer)
+}
+
+// GetUserPointer returns the user pointer of the specified monitor.
+//
+// This function returns the current value of the user-defined pointer of the
+// specified monitor. The initial value is nil.
+//
+// This function may be called from the monitor callback, even for a monitor
+// that is being disconnected.
+//
+// Possible errors include NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (monitor *Monitor) GetUserPointer() unsafe.Pointer {
+	return unsafe.Pointer(C.glfwGetMonitorUserPointer(monitor.c()))
 }
 
 // SetMonitorCallback sets the monitor configuration callback.
@@ -1252,7 +1576,7 @@ func _monitorCallback(cMonitor *C.GLFWmonitor, cEvent C.int) {
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetVideoModes() []*VideoMode {
 	var cCount C.int
-	cModes := C.glfwGetVideoModes((*C.GLFWmonitor)(monitor), &cCount)
+	cModes := C.glfwGetVideoModes(monitor.c(), &cCount)
 	if unsafe.Pointer(cModes) != C.NULL {
 		count := int(cCount)
 		videoModes := make([]*VideoMode, 0, count)
@@ -1283,7 +1607,7 @@ func (monitor *Monitor) GetVideoModes() []*VideoMode {
 //
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetVideoMode() *VideoMode {
-	cMode := C.glfwGetVideoMode((*C.GLFWmonitor)(monitor))
+	cMode := C.glfwGetVideoMode(monitor.c())
 	if unsafe.Pointer(cMode) != C.NULL {
 		return &VideoMode{
 			Width:       int(cMode.width),
@@ -1297,15 +1621,26 @@ func (monitor *Monitor) GetVideoMode() *VideoMode {
 	return nil
 }
 
-// SetGamma generates a 256-element gamma ramp from the specified exponent and
-// then calls Monitor.SetGammaRamp() with it. The value must be a finite number
-// greater than zero.
+// SetGamma generates an appropriately sized gamma ramp from the specified
+// exponent and then calls Monitor.SetGammaRamp() with it. The value must be a
+// finite number greater than zero.
+//
+// The software controlled gamma ramp is applied in addition to the hardware
+// gamma correction, which today is usually an approximation of sRGB gamma.
+// This means that setting a perfectly linear ramp, or gamma 1.0, will produce
+// the default (usually sRGB-like) behavior.
+//
+// For gamma correct rendering with OpenGL or OpenGL ES, see the SRGBCapable
+// hint.
 //
 // Possible errors include NotInitialized, InvalidValue and PlatformError.
 //
+// On Wayland, gamma handling is a priviledged protocol, this function will thus
+// never be implemented and emits PlatformError.
+//
 // This function must only be called from the main thread.
 func (monitor *Monitor) SetGamma(gamma float32) {
-	C.glfwSetGamma((*C.GLFWmonitor)(monitor), C.float(gamma))
+	C.glfwSetGamma(monitor.c(), C.float(gamma))
 }
 
 // GetGammaRamp returns the current gamma ramp for monitor, or nil if an error
@@ -1313,9 +1648,12 @@ func (monitor *Monitor) SetGamma(gamma float32) {
 //
 // Possible errors include NotInitialized and PlatformError.
 //
+// On Wayland, gamma handling is a priviledged protocol, this function will thus
+// never be implemented and emits PlatformError while returning nil.
+//
 // This function must only be called from the main thread.
 func (monitor *Monitor) GetGammaRamp() *GammaRamp {
-	cRamp := C.glfwGetGammaRamp((*C.GLFWmonitor)(monitor))
+	cRamp := C.glfwGetGammaRamp(monitor.c())
 	if unsafe.Pointer(cRamp) != C.NULL {
 		size := int(cRamp.size)
 		ramp := &GammaRamp{
@@ -1341,12 +1679,23 @@ func (monitor *Monitor) GetGammaRamp() *GammaRamp {
 // for monitor is saved by GLFW the first time this function is called and is
 // restored by Context.Terminate().
 //
+// The software controlled gamma ramp is applied in addition to the hardware
+// gamma correction, which today is usually an approximation of sRGB gamma.
+// This means that setting a perfectly linear ramp, or gamma 1.0, will produce
+// the default (usually sRGB-like) behavior.
+//
+// For gamma correct rendering with OpenGL or OpenGL ES, see the SRGBCapable
+// hint.
+//
 // Possible errors include NotInitialized and PlatformError.
 //
-// Gamma ramp sizes other than 256 are not supported by all platforms or
-// graphics hardware.
+// The size of the specified gamma ramp should match the size of the current
+// ramp for that monitor.
 //
 // On Windows, the gamma ramp size must be 256.
+//
+// On Wayland, gamma handling is a priviledged protocol, this function will thus
+// never be implemented and emits PlatformError.
 //
 // This function must only be called from the main thread.
 func (monitor *Monitor) SetGammaRamp(ramp *GammaRamp) {
@@ -1365,7 +1714,7 @@ func (monitor *Monitor) SetGammaRamp(ramp *GammaRamp) {
 		blue:  &cBlue[0],
 		size:  C.uint(size),
 	}
-	C.glfwSetGammaRamp((*C.GLFWmonitor)(monitor), &cRamp)
+	C.glfwSetGammaRamp(monitor.c(), &cRamp)
 }
 
 // DefaultWindowHints resets all window hints to their default values.
@@ -1380,19 +1729,51 @@ func (c *Context) DefaultWindowHints() {
 // WindowHint sets the specified window hint to the desired value.
 //
 // This function sets hints for the next call to Context.CreateWindow(). The
-// hints, once set, retain their values until changed by a call to
-// Context.WindowHint() or Context.DefaultWindowHint(), or until the library is
-// terminated.
+// hints, once set, retain their values until changed by a call to this function
+// or Context.DefaultWindowHints(), or until the library is terminated.
+//
+// Only integer value hints can be set with this function. String value hints
+// are set with Context.WindowHintString().
 //
 // This function does not check whether the specified hint values are valid. If
 // you set hints to invalid values this will instead be reported by the next
 // call to Context.CreateWindow().
+//
+// Some hints are platform specific. These may be set on any platform but they
+// will only affect their specific platform. Other platforms will ignore them.
+// Setting these hints requires no platform specific headers or functions.
 //
 // Possible errors include NotInitialized and InvalidEnum.
 //
 // This function must only be called from the main thread.
 func (c *Context) WindowHint(hint Hint, value HintValue) {
 	C.glfwWindowHint(C.int(hint), C.int(value))
+}
+
+// WindowHintString sets the specified window hint to the desired value.
+//
+// This function sets hints for the next call to Context.CreateWindow(). The
+// hints, once set, retain their values until changed by a call to this function
+// or Context.DefaultWindowHints(), or until the library is terminated.
+//
+// Only string type hints can be set with this function. Integer value hints
+// are set with Context.WindowHint().
+//
+// This function does not check whether the specified hint values are valid.
+// If you set hints to invalid values this will instead be reported by the next
+// call to Context.CreateWindow().
+//
+// Some hints are platform specific. These may be set on any platform but they
+// will only affect their specific platform. Other platforms will ignore them.
+// Setting these hints requires no platform specific headers or functions.
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (c *Context) WindowHintString(hint Hint, value string) {
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cValue))
+	C.glfwWindowHintString(C.int(hint), cValue)
 }
 
 // WindowHintBool is a shortcut for setting window hints with boolean values.
@@ -1440,8 +1821,8 @@ func (c *Context) WindowHintBool(hint Hint, value bool) {
 // (http://www.glfw.org/docs/latest/window_guide.html#window_windowed_full_screen).
 //
 // Once you have created the window, you can switch it between windowed and full
-// screen mode with Window.SetMonitor(). If the window has an OpenGL or OpenGL
-// ES context, it will be unaffected.
+// screen mode with Window.SetMonitor(). This will not affect its OpenGL or
+// OpenGL ES context.
 //
 // By default, newly created windows use the placement recommended by the window
 // system. To create the window at a specific position, make it initially
@@ -1472,32 +1853,41 @@ func (c *Context) WindowHintBool(hint Hint, value bool) {
 //
 // On Windows, if the executable has an icon resource named GLFW_ICON, it will
 // be set as the initial icon for the window. If no such icon is present, the
-// IDI_WINLOGO icon will be used instead. To set a different icon, see
+// IDI_APPLICATION icon will be used instead. To set a different icon, see
 // Window.SetIcon().
 //
 // On Windows, the context to share resources with must not be current on any
 // other thread.
 //
-// On OS X, the GLFW window has no icon, as it is not a document window, but the
-// dock icon will be the same as the application bundle's icon. For more
+// On macOS, The OS only supports forward-compatible core profile contexts for
+// OpenGL versions 3.2 and later. Before creating an OpenGL context of version
+// 3.2 or later you must set the OpenGLForwardCompat and OpenGLProfile hints
+// accordingly. OpenGL 3.0 and 3.1 contexts are not supported at all on macOS.
+//
+// On macOS, the GLFW window has no icon, as it is not a document window, but
+// the dock icon will be the same as the application bundle's icon. For more
 // information on bundles, see the Bundle Programming Guide
 // (https://developer.apple.com/library/mac/documentation/CoreFoundation/Conceptual/CFBundles/)
 // in the Mac Developer Library.
 //
-// On OS X, the first time a window is created the menu bar is populated with
-// common commands like Hide, Quit and About. The About entry opens a minimal
-// about dialog with information from the application's bundle. The menu bar can
-// be disabled with a compile-time option
-// (http://www.glfw.org/docs/latest/compile_guide.html#compile_options_osx).
+// On macOS, the first time a window is created the menu bar is created. If GLFW
+// finds a MainMenu.nib it is loaded and assumed to contain a menu bar.
+// Otherwise a minimal menu bar is created manually with common commands like
+// Hide, Quit and About. The About entry opens a minimal about dialog with
+// information from the application's bundle. Menu bar creation can be disabled
+// entirely with the CocoaMenubar init hint.
 //
-// On OS X 10.10 and later the window frame will not be rendered at full
-// resolution on Retina displays unless the NSHighResolutionCapable key is
-// enabled in the application bundle's Info.plist. For more information, see
-// High Resolution Guidelines
+// On macoOS 10.10 and later the window frame will not be rendered at full
+// resolution on Retina displays unless the CocoaRetinaFramebuffer hint is true
+// and the NSHighResolutionCapable key is enabled in the application bundle's
+// Info.plist. For more information, see High Resolution Guidelines for OS X
 // (https://developer.apple.com/library/mac/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/Explained/Explained.html)
 // for OS X in the Mac Developer Library. The GLFW test and example programs use
 // a custom Info.plist template for this, which can be found as
 // CMake/MacOSXBundleInfo.plist.in in the source tree.
+//
+// On macOS, when activating frame autosaving with CocoaFrameName, the specified
+// window size and position may be overriden by previously saved values.
 //
 // On X11, some window managers will not respect the placement of initially
 // hidden windows.
@@ -1506,13 +1896,30 @@ func (c *Context) WindowHintBool(hint Hint, value bool) {
 // window to reach its requested state. This means you may not be able to query
 // the final size, position or other attributes directly after window creation.
 //
-// This function must not be called from a callback.
+// On X11, the class part of the WM_CLASS window property will by default be set
+// to the window title passed to this function. The instance part will use the
+// contents of the RESOURCE_NAME environment variable, if present and not empty,
+// or fall back to the window title. Set the X11ClassName and X11InstanceName
+// window hints to override this.
+//
+// On Wayland, compositors should implement the xdg-decoration protocol for GLFW
+// to decorate the window properly. If this protocol isn't supported, or if the
+// compositor prefers client-side decorations, a very simple fallback frame will
+// be drawn using the wp_viewporter protocol. A compositor can still emit close,
+// maximize or fullscreen events, using for instance a keybind mechanism. If
+// neither of these protocols is supported, the window won't be decorated.
+//
+// On Wayland, a full screen window will not attempt to change the mode, no
+// matter what the requested size or refresh rate.
+//
+// On Wayland, screensaver inhibition requires the idle-inhibit protocol to be
+// implemented in the user's compositor.
 //
 // This function must only be called from the main thread.
 func (c *Context) CreateWindow(width, height int, title string, monitor *Monitor, share *Window) *Window {
 	cTitle := C.CString(title)
 	defer C.free(unsafe.Pointer(cTitle))
-	cWindow := C.glfwCreateWindow(C.int(width), C.int(height), cTitle, (*C.GLFWmonitor)(monitor), share.c())
+	cWindow := C.glfwCreateWindow(C.int(width), C.int(height), cTitle, monitor.c(), share.c())
 	if unsafe.Pointer(cWindow) != C.NULL {
 		return (*Window)(cWindow)
 	}
@@ -1580,18 +1987,26 @@ func (win *Window) SetTitle(title string) {
 // of or closest to the sizes desired by the system are selected. If no images
 // are specified (nil or an empty slice), win reverts to its default icon.
 //
+// The pixels are 32-bit, little-endian, non-premultiplied RGBA, i.e. eight bits
+// per channel with the red channel first. They are arranged canonically as
+// packed sequential rows, starting from the top-left corner.
+//
 // The desired image sizes varies depending on platform and system settings. The
 // selected images will be rescaled as needed. Good sizes include 16x16, 32x32
 // and 48x48.
 //
 // Possible errors include NotInitialized and PlatformError.
 //
-// On OS X, the GLFW window has no icon, as it is not a document window, so this
-// function does nothing. The dock icon will be the same as the application
+// On macOS, the GLFW window has no icon, as it is not a document window, so
+// this function does nothing. The dock icon will be the same as the application
 // bundle's icon. For more information on bundles, see the Bundle Programming
 // Guide
 // (https://developer.apple.com/library/mac/documentation/CoreFoundation/Conceptual/CFBundles/)
 // in the Mac Developer Library.
+//
+// On Wayland, there is no existing protocol to change an icon, the window will
+// thus inherit the one defined in the application's desktop file. This function
+// always emits PlatformError.
 //
 // This function must only be called from the main thread.
 func (win *Window) SetIcon(images []Image) {
@@ -1609,9 +2024,12 @@ func (win *Window) SetIcon(images []Image) {
 }
 
 // GetPos retrieves the position, in screen coordinates, of the upper-left
-// corner of the client area of win.
+// corner of the content area of win.
 //
 // Possible errors include NotInitialized and PlatformError.
+//
+// On Wayland, there is no way for an application to retrieve the global
+// position of its windows, this function will always emit PlatformError.
 //
 // This function must only be called from the main thread.
 func (win *Window) GetPos() (x, y int) {
@@ -1622,7 +2040,7 @@ func (win *Window) GetPos() (x, y int) {
 }
 
 // SetPos sets the position, in screen coordinates, of the upper-left corner of
-// the client area of win, a windowed mode window. If the window is a full
+// the content area of win, a windowed mode window. If the window is a full
 // screen window, this function does nothing.
 //
 // Do not use this function to move an already visible window unless you have
@@ -1633,12 +2051,15 @@ func (win *Window) GetPos() (x, y int) {
 //
 // Possible errors include NotInitialized and PlatformError.
 //
+// On Wayland, there is no way for an application to retrieve the global
+// position of its windows, this function will always emit PlatformError.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetPos(x, y int) {
 	C.glfwSetWindowPos(win.c(), C.int(x), C.int(y))
 }
 
-// GetSize retrieves the size, in screen coordinates, of the client area of win.
+// GetSize retrieves the size, in screen coordinates, of the content area of win.
 // If you wish to retrieve the size of the framebuffer of the window in pixels,
 // see Window.GetFramebufferSize().
 //
@@ -1652,7 +2073,7 @@ func (win *Window) GetSize() (width, height int) {
 	return
 }
 
-// SetSizeLimits sets the size limits of the client area of win. If win is full
+// SetSizeLimits sets the size limits of the content area of win. If win is full
 // screen, the size limits only take effect once it is made windowed. If win is
 // not resizable, this function does nothing.
 //
@@ -1669,12 +2090,15 @@ func (win *Window) GetSize() (width, height int) {
 // If you set size limits and an aspect ratio that conflict, the results are
 // undefined.
 //
+// On Wayland, the size limits will not be applied until the window is actually
+// resized, either by the user or by the compositor.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight int) {
 	C.glfwSetWindowSizeLimits(win.c(), C.int(minWidth), C.int(minHeight), C.int(maxWidth), C.int(maxHeight))
 }
 
-// SetAspectRatio sets the required aspect ratio of the client area of win. If
+// SetAspectRatio sets the required aspect ratio of the content area of win. If
 // win is full screen, the aspect ratio only takes effect once it is made
 // windowed. If win is not resizable, this function does nothing.
 //
@@ -1690,12 +2114,18 @@ func (win *Window) SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight int) {
 //
 // Possible errors include NotInitialized, InvalidValue and PlatformError.
 //
+// If you set size limits and an aspect ratio that conflicts, the results are
+// undefined.
+//
+// On Wayland, the aspect ratio will not be applied until the window is actually
+// resized, either by the user or by the compositor.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetAspectRatio(numer, denom int) {
 	C.glfwSetWindowAspectRatio(win.c(), C.int(numer), C.int(denom))
 }
 
-// SetSize sets the size, in screen coordinates, of the client area of win.
+// SetSize sets the size, in screen coordinates, of the content area of win.
 //
 // For full screen windows, this function updates the resolution of its desired
 // video mode and switches to the video mode closest to it, without affecting
@@ -1709,6 +2139,9 @@ func (win *Window) SetAspectRatio(numer, denom int) {
 // should not override these limits.
 //
 // Possible errors include NotInitialized and PlatformError.
+//
+// On Wayland, a full screen window will not attempt to change the mode, no
+// matter what the requested size.
 //
 // This function must only be called from the main thread.
 func (win *Window) SetSize(width, height int) {
@@ -1749,6 +2182,66 @@ func (win *Window) GetFrameSize() (left, top, right, bottom int) {
 	return
 }
 
+// GetContentScale retrieves the content scale for the specified window.
+//
+// This function retrieves the content scale for the specified window. The
+// content scale is the ratio between the current DPI and the platform's default
+// DPI. This is especially important for text and any UI elements. If the pixel
+// dimensions of your UI scaled by this look appropriate on your machine then it
+// should appear at a reasonable size on other machines regardless of their DPI
+// and scaling settings. This relies on the system DPI and scaling settings
+// being somewhat correct.
+//
+// On systems where each monitors can have its own content scale, the window
+// content scale will depend on which monitor the system considers the window to
+// be on.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (win *Window) GetContentScale() (xScale, yScale float32) {
+	var cXScale, cYScale C.float
+	C.glfwGetWindowContentScale(win.c(), &cXScale, &cYScale)
+	xScale, yScale = float32(cXScale), float32(cYScale)
+	return
+}
+
+// GetOpacity returns the opacity of the whole window.
+//
+// This function returns the opacity of the window, including any decorations.
+//
+// The opacity (or alpha) value is a positive finite number between zero and
+// one, where zero is fully transparent and one is fully opaque. If the system
+// does not support whole window transparency, this function always returns one.
+//
+// The initial opacity value for newly created windows is one.
+//
+// Possible errors include NotInitialized and PlatformError
+//
+// This function must only be called from the main thread.
+func (win *Window) GetOpacity() float32 {
+	return float32(C.glfwGetWindowOpacity(win.c()))
+}
+
+// SetOpacity sets the opacity of the whole window.
+//
+// This function sets the opacity of the window, including any decorations.
+//
+// The opacity (or alpha) value is a positive finite number between zero and
+// one, where zero is fully transparent and one is fully opaque.
+//
+// The initial opacity value for newly created windows is one.
+//
+// A window created with framebuffer transparency may not use whole window
+// transparency. The results of doing this are undefined.
+//
+// Possible errors include NotInitialized and PlatformError
+//
+// This function must only be called from the main thread.
+func (win *Window) SetOpacity(opacity float32) {
+	C.glfwSetWindowOpacity(win.c(), C.float(opacity))
+}
+
 // Iconify iconifies (minimizes) win if it was previously restored. If win is
 // already iconified, this function does nothing.
 //
@@ -1756,6 +2249,9 @@ func (win *Window) GetFrameSize() (left, top, right, bottom int) {
 // until the window is restored.
 //
 // Possible errors include NotInitialized and PlatformError.
+//
+// On Wayland, there is no concept of iconification in wl_shell, this function
+// will emit PlatformError when using this deprecated protocol.
 //
 // This function must only be called from the main thread.
 func (win *Window) Iconify() {
@@ -1790,6 +2286,10 @@ func (win *Window) Maximize() {
 // Show makes win visible if it was previously hidden. If win is already visible
 // or is in full screen mode, this function does nothing.
 //
+// By default, windowed mode windows are focused when shown. Set the FocusOnShow
+// window hint to change this behavior for all newly created windows, or change
+// the behavior for an existing window with Window.SetAttrib().
+//
 // Possible errors include NotInitialized and PlatformError.
 //
 // This function must only be called from the main thread.
@@ -1813,15 +2313,43 @@ func (win *Window) Hide() {
 // Be default, both windowed and full screen mode windows are focused when
 // initially created. Set the Focused hint to disable this behavior.
 //
+// Also by default, windowed mode windows are focused when shown with
+// Window.Show(). Set the FocusOnShow to disable this behavior.
+//
 // Do not use this function to steal focus from other applications unless you
 // are certain that is what the user wants. Focus stealing can be extremely
 // disruptive.
 //
+// For a less disruptive way of getting the user's attention, see attention requests
+// (https://www.glfw.org/docs/latest/window_guide.html#window_attention).
+//
 // Possible errors include NotInitailized and PlatformError.
+//
+// On Wayland, it is not possible for an application to bring its windows to
+// front, this function will always emit @ref PlatformError.
 //
 // This function must only be called from the main thread.
 func (win *Window) Focus() {
 	C.glfwFocusWindow(win.c())
+}
+
+// RequestAttention requests user attention to the specified window.
+//
+// This function requests user attention to the specified window. On platforms
+// where this is not supported, attention is requested to the application as a
+// whole.
+//
+// Once the user has given attention, usually by focusing the window or
+// application, the system will end the request automatically.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// On macOS, attention is requested to the application as a whole, not the
+// specific window.
+//
+// This function must only be called from the main thread.
+func (win *Window) RequestAttention() {
+	C.glfwRequestWindowAttention(win.c())
 }
 
 // GetMonitor returns the handle of the monitor that win is in full screen on.
@@ -1842,20 +2370,30 @@ func (win *Window) GetMonitor() *Monitor {
 // The window position is ignored when setting a monitor.
 //
 // When monitor is nil, x, y, width and height are used to place the window
-// client area. refreshRate is ignored when no monitor is specified.
+// content area. refreshRate is ignored when no monitor is specified.
 //
 // If you only wish to update the resolution of a full screen window or the size
 // of a windowed mode window, see Window.SetSize().
 //
 // When a window transitions from full screen to windowed mode, this function
 // restores any previous window settings such as whether it is decorated,
-// floating, resizable, has size or aspect ratio limits, etc..
+// floating, resizable, has size or aspect ratio limits, etc.
 //
 // Possible errors include NotInitialized and PlatformError.
 //
+// The OpenGL or OpenGL ES context will not be destroyed or otherwise affected
+// by any resizing or mode switching, although you may need to update your
+// viewport if the framebuffer size has changed.
+//
+// On Wayland, the desired window position is ignored, as there is no way for an
+// application to set this property.
+//
+// On Wayland, setting the window to full screen will not attempt to change the
+// mode, no matter what the requested size or refresh rate.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetMonitor(monitor *Monitor, x, y, width, height, refreshRate int) {
-	C.glfwSetWindowMonitor(win.c(), (*C.GLFWmonitor)(monitor), C.int(x), C.int(y), C.int(width), C.int(height), C.int(refreshRate))
+	C.glfwSetWindowMonitor(win.c(), monitor.c(), C.int(x), C.int(y), C.int(width), C.int(height), C.int(refreshRate))
 }
 
 // GetAttrib returns the value of an attribute of win or its OpenGL or OpenGL ES
@@ -1884,14 +2422,42 @@ func (win *Window) GetAttribBool(attrib Hint) bool {
 	return HintValue(C.glfwGetWindowAttrib(win.c(), C.int(attrib))) == True
 }
 
+// SetAttrib sets an attribute of the specified window.
+//
+// This function sets the value of an attribute of the specified window.
+//
+// The supported attributes are Decorated, Resizable, Floating, AutoIconify and
+// FocusOnShow.
+//
+// Some of these attributes are ignored for full screen windows. The new value
+// will take effect if the window is later made windowed.
+//
+// Some of these attributes are ignored for windowed mode windows. The new value
+// will take effect if the window is later made full screen.
+//
+// Possible errors include NotInitialized, InvalidEnum, InvalidValue and
+// PlatformError.
+//
+// Calling Window.GetAttrib() will always return the latest value, even if that
+// value is ignored by the current mode of the window.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetAttrib(attrib Hint, value bool) {
+	if value {
+		C.glfwSetWindowAttrib(win.c(), C.int(attrib), C.int(True))
+	} else {
+		C.glfwSetWindowAttrib(win.c(), C.int(attrib), C.int(False))
+	}
+}
+
 // SetUserPointer sets the user-defined pointer of window. The current value is
 // retained until the window is destroyed. The initial value is nil.
 //
 // Possible error include NotInitialized.
 //
 // This function may be called from any thread. Access is not synchronized.
-func (win *Window) SetUserPointer(pointer *interface{}) {
-	C.glfwSetWindowUserPointer(win.c(), unsafe.Pointer(pointer))
+func (win *Window) SetUserPointer(pointer unsafe.Pointer) {
+	C.glfwSetWindowUserPointer(win.c(), pointer)
 }
 
 // GetUserPointer returns the current value of the user-defined pointer of win.
@@ -1900,17 +2466,13 @@ func (win *Window) SetUserPointer(pointer *interface{}) {
 // Possible errors include NotInitialized.
 //
 // This function may be called from any thread. Access is not synchronized.
-func (win *Window) GetUserPointer() *interface{} {
-	cPointer := C.glfwGetWindowUserPointer(win.c())
-	if unsafe.Pointer(cPointer) != C.NULL {
-		return (*interface{})(cPointer)
-	}
-	return nil
+func (win *Window) GetUserPointer() unsafe.Pointer {
+	return unsafe.Pointer(C.glfwGetWindowUserPointer(win.c()))
 }
 
 // SetPosCallback sets the position callback for win, which is called when win
-// is moved. The callback is provided with the screen position of the upper-left
-// corner of the client area of win.
+// is moved. The callback is provided with the position, in screen coordinates,
+// of the upper-left corner of the content area of win.
 //
 // callback is the new callback, or nil to remove the currently set callback.
 //
@@ -1918,6 +2480,9 @@ func (win *Window) GetUserPointer() *interface{} {
 // library had not been initialized.
 //
 // Possible errors include NotInitialized.
+//
+// On Wayland, this callback will never be called, as there is no way for an
+// application to know its global position.
 //
 // This function must only be called from the main thread.
 func (win *Window) SetPosCallback(callback WindowPosCallback) WindowPosCallback {
@@ -1949,7 +2514,7 @@ func _windowPosCallback(cWin *C.GLFWwindow, cX, cY C.int) {
 
 // SetSizeCallback sets the size callback of win, which is called when win is
 // resized. The callback is provided with the size, in screen coordinates, of
-// the client area of win.
+// the content area of win.
 //
 // callback is the new callback, or nil to remove the currently set callback.
 //
@@ -2003,6 +2568,9 @@ func _windowSizeCallback(cWin *C.GLFWwindow, cWidth, cHeight C.int) {
 //
 // Possible errors include NotInitialized.
 //
+// On macOS, selecting Quit from the application menu will trigger the close
+// callback for all windows.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetCloseCallback(callback WindowCloseCallback) WindowCloseCallback {
 	callbacks, exist := windowCallbacks[win]
@@ -2032,12 +2600,12 @@ func _windowCloseCallback(cWin *C.GLFWwindow) {
 }
 
 // SetRefreshCallback sets the refresh callback for win, which is called when
-// the client area of win needs to be redrawn, for example if the window has
+// the content area of win needs to be redrawn, for example if the window has
 // been exposed after having been covered by another window.
 //
-// On compositing window systems such as Aero, Compiz or Aqua, where the window
-// contents are saved off-screen, this callback may be called only very
-// infrequently or never at all.
+// On compositing window systems such as Aero, Compiz, Aqua or Wayland, where
+// the window contents are saved off-screen, this callback may be called only
+// very infrequently or never at all.
 //
 // callback is the new callback, or nil to remove the currently set callback.
 //
@@ -2128,6 +2696,9 @@ func _windowFocusCallback(cWin *C.GLFWwindow, cFocused C.int) {
 //
 // Possible errors include NotInitialized.
 //
+// On Wayland, the wl_shell protocol has no concept of iconification, this
+// callback will never be called when using this deprecated protocol.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetIconifyCallback(callback WindowIconifyCallback) WindowIconifyCallback {
 	callbacks, exist := windowCallbacks[win]
@@ -2154,6 +2725,47 @@ func _windowIconifyCallback(cWin *C.GLFWwindow, cIconified C.int) {
 	if callbacks, exist := windowCallbacks[win]; exist && callbacks.IconifyCallback != nil {
 		iconified := int(cIconified) == int(True)
 		callbacks.IconifyCallback(win, iconified)
+	}
+}
+
+// SetMaximizeCallback sets the maximize callback for the specified window.
+//
+// This function sets the maximization callback of the specified window, which
+// is called when the window is maximized or restored.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetMaximizeCallback(callback WindowMaximizeCallback) WindowMaximizeCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.MaximizeCallback
+	callbacks.MaximizeCallback = callback
+
+	if callback != nil {
+		C.goSetWindowMaximizeCallback(win.c())
+	} else {
+		C.goRemoveWindowMaximizeCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowMaximizeCallback
+func _windowMaximizeCallback(cWin *C.GLFWwindow, cMaximized C.int) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.MaximizeCallback != nil {
+		maximized := int(cMaximized) == int(True)
+		callbacks.MaximizeCallback(win, maximized)
 	}
 }
 
@@ -2196,6 +2808,47 @@ func _framebufferSizeCallback(cWin *C.GLFWwindow, cWidth, cHeight C.int) {
 	}
 }
 
+// SetWindowContentScaleCallback sets the window content scale callback for the specified window.
+//
+// This function sets the window content scale callback of the specified window,
+// which is called when the content scale of the specified window changes.
+//
+// callback is the new callback, or nil to remove the currently set callback.
+//
+// Returns the previously set callback, or nil if no callback was set or the
+// library had not been initialized.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (win *Window) SetWindowContentScaleCallback(callback WindowContentScaleCallback) WindowContentScaleCallback {
+	callbacks, exist := windowCallbacks[win]
+	if !exist {
+		callbacks = new(WindowCallbacks)
+		windowCallbacks[win] = callbacks
+	}
+
+	previousCallback := callbacks.ContentScaleCallback
+	callbacks.ContentScaleCallback = callback
+
+	if callback != nil {
+		C.goSetWindowContentScaleCallback(win.c())
+	} else {
+		C.goRemoveWindowContentScaleCallback(win.c())
+	}
+
+	return previousCallback
+}
+
+//export _windowContentScaleCallback
+func _windowContentScaleCallback(cWin *C.GLFWwindow, cXScale, cYScale C.float) {
+	win := (*Window)(cWin)
+	if callbacks, exist := windowCallbacks[win]; exist && callbacks.ContentScaleCallback != nil {
+		xScale, yScale := float32(cXScale), float32(cYScale)
+		callbacks.ContentScaleCallback(win, xScale, yScale)
+	}
+}
+
 // PollEvents processes all pending events.
 //
 // This function processes only those events that are already in the event queue
@@ -2208,9 +2861,11 @@ func _framebufferSizeCallback(cWin *C.GLFWwindow, cWidth, cHeight C.int) {
 // (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
 // the contents of your window when necessary during such operations.
 //
-// On some platforms, certain events are sent directly to the application
-// without going through the event queue, causing callbacks to be called outside
-// of a call to one of the event processing functions.
+// Do not assume that callbacks you set will only be called in response to event
+// processing functions like this one. While it is necessary to poll for events,
+// window systems that require GLFW to register callbacks of its own can pass
+// events to GLFW in response to many window system function calls. GLFW will
+// pass those events on to the application callbacks before returning.
 //
 // Event processing is not required for joystick input to work.
 //
@@ -2242,12 +2897,11 @@ func (c *Context) PollEvents() {
 // (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
 // the contents of your window when necessary during such operations.
 //
-// On some platforms, certain callbacks may be called outside of a call to one
-// of the event processing functions.
-//
-// If no windows exist, this function returns immediately. For synchronization
-// of threads in applications that do not create windows, use your threading
-// library of choice.
+// Do not assume that callbacks you set will only be called in response to event
+// processing functions like this one. While it is necessary to poll for events,
+// window systems that require GLFW to register callbacks of its own can pass
+// events to GLFW in response to many window system function calls. GLFW will
+// pass those events on to the application callbacks before returning.
 //
 // Event processing is not required for joystick input to work.
 //
@@ -2282,14 +2936,17 @@ func (c *Context) WaitEvents() {
 // (http://www.glfw.org/docs/latest/window_guide.html#window_refresh) to redraw
 // the contents of your window when necessary during such operations.
 //
-// On some platforms, certain callbacks may be called outside of a call to one
-// of the event processing functions.
-//
-// If no windows exist, this function returns immediately. For synchronization
-// of threads in applications that do not create windows, use your threading
-// library of choice.
+// Do not assume that callbacks you set will only be called in response to event
+// processing functions like this one. While it is necessary to poll for events,
+// window systems that require GLFW to register callbacks of its own can pass
+// events to GLFW in response to many window system function calls. GLFW will
+// pass those events on to the application callbacks before returning.
 //
 // Event processing is not required for joystick input to work.
+//
+// timeout is the maximum amount of time, in seconds, to wait.
+//
+// Possible errors include NotInitialized, InvalidValue and PlatformError.
 //
 // This function must not be called from a callback.
 //
@@ -2301,10 +2958,6 @@ func (c *Context) WaitEventsTimeout(timeout float64) {
 // PostEmptyEvent posts an empty event from the current thread to the event
 // queue, causing Context.WaitEvents() or Context.WaitEventsTimeout() to return.
 //
-// If no windows exist, this function returns immediately. For synchronization
-// of threads in applications that do not create windows, use your threading
-// library of choice.
-//
 // Possible errors include NotInitialized and PlatformError.
 //
 // This function may be called from any thread.
@@ -2313,7 +2966,8 @@ func (c *Context) PostEmptyEvent() {
 }
 
 // GetInputMode returns the value of an input option for win. mode must be one
-// of CursorMode, StickyKeysMode or StickyMouseButtonsMode.
+// of CursorMode, StickyKeysMode, StickyMouseButtonsMode, LockKeyModsMode or
+// RawMouseMotionMode.
 //
 // Possible errors include NotInitialized and InvalidEnum.
 //
@@ -2323,13 +2977,14 @@ func (win *Window) GetInputMode(mode InputMode) int {
 }
 
 // SetInputMode sets an input mode option for win. mode must be one of
-// CursorMode, StickyKeysMode and StickyMouseButtonsMode.
+// CursorMode, StickyKeysMode, StickyMouseButtonsMode, LockKeyModsMode or
+// RawMouseMotionMode.
 //
 // If mode is CursorMode, value must be one of the following cursor modes:
 //
 // - CursorNormal makes the cursor visible and behaving normally.
 //
-// - CursorHidden makes the cursor invisible when it is over the client area of
+// - CursorHidden makes the cursor invisible when it is over the content area of
 // win but does not restrict the cursor from leaving.
 //
 // - CursorDisabled hides and grabs the cursor, providing virtual and unlimited
@@ -2349,6 +3004,17 @@ func (win *Window) GetInputMode(mode InputMode) int {
 // call. This is useful when you are only interested in whether mouse buttons
 // have been pressed but not when or in which order.
 //
+// If the mode is LockKeyModsMode, the value must be either True to enable lock
+// key modifier bits, or False to disable them. If enabled, callbacks that
+// receive modifier bits will also have the ModCapsLock bit set when the event
+// was generated with Caps Lock on, and the ModNumLock bit when Num Lock was on.
+//
+// If the mode is RawMouseMotionMode, the value must be either True to enable
+// raw (unscaled and unaccelerated) mouse motion when the cursor is disabled, or
+// False to disable it. If raw motion is not supported, attempting to set this
+// will emit PlatformError. Call Context.RawMouseMotionSupported() to check for
+// support.
+//
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
 // This function must only be called from the main thread.
@@ -2356,16 +3022,43 @@ func (win *Window) SetInputMode(mode InputMode, value int) {
 	C.glfwSetInputMode(win.c(), C.int(mode), C.int(value))
 }
 
-// GetKeyName returns the localized name of the specified printable key. This is
-// intended for displaying key bindings to the user.
+// RawMouseMotionSupported returns whether raw mouse motion is supported.
 //
-// If key is KeyUnknown, scancode is used instead, otherwise scancode is
-// ignored. If a non-printable key or (if the key is KeyUnknown) a scancode that
-// maps to a non-printable key is specified, this function returns nil.
+// This function returns whether raw mouse motion is supported on the current
+// system. This status does not change after GLFW has been initialized so you
+// only need to check this once. If you attempt to enable raw motion on a system
+// that does not support it, PlatformError will be emitted.
 //
-// This behavior allows you to pass in the arguments passed to the key callback
-// (http://www.glfw.org/docs/latest/input_guide.html#input_key) without
-// modification.
+// Raw mouse motion is closer to the actual motion of the mouse across a
+// surface. It is not affected by the scaling and acceleration applied to the
+// motion of the desktop cursor. That processing is suitable for a cursor while
+// raw motion is better for controlling for example a 3D camera. Because of
+// this, raw mouse motion is only provided when the cursor is disabled.
+//
+// Possible errors include NotInitialized.
+//
+// This function must only be called from the main thread.
+func (c *Context) RawMouseMotionSupported() bool {
+	return int(C.glfwRawMouseMotionSupported()) == int(True)
+}
+
+// GetKeyName returns the layout-specific name of the specified printable key.
+//
+// This function returns the name of the specified printable key, encoded as
+// UTF-8. This is typically the character that key would produce without any
+// modifier keys, intended for displaying key bindings to the user. For dead
+// keys, it is typically the diacritic it would add to a character.
+//
+// Do not use this function for text input. You will break text input for many
+// languages even if it happens to work for yours.
+//
+// If the key is KeyUnknown, the scancode is used to identify the key, otherwise
+// the scancode is ignored. If you specify a non-printable key, or KeyUnknown
+// and a scancode that maps to a non-printable key, this function returns "" but
+// does not emit an error.
+//
+// This behavior allows you to always pass in the arguments in the key callback
+// without modification.
 //
 // The printable keys are:
 //     KeyApostrophe
@@ -2390,11 +3083,29 @@ func (win *Window) SetInputMode(mode InputMode, value int) {
 //     KeyKpAdd
 //     KeyKpEqual
 //
+// Names for printable keys depend on keyboard layout, while names for non-
+// printable keys are the same across layouts but depend on the application
+// language and should be localized along with other user interface text.
+//
 // Possible errors include NotInitialized and PlatformError.
 //
 // This function must only be called from the main thread.
 func (c *Context) GetKeyName(key Key, scancode int) string {
 	return C.GoString(C.glfwGetKeyName(C.int(key), C.int(scancode)))
+}
+
+// GetKeyScancode returns the platform-specific scancode of the specified key.
+//
+// This function returns the platform-specific scancode of the specified key.
+//
+// If the key is KeyUnknown or does not exist on the keyboard this method will
+// return -1.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// @thread_safety This function may be called from any thread.
+func (c *Context) GetKeyScancode(key Key) int {
+	return int(C.glfwGetKeyScancode(C.int(key)))
 }
 
 // GetKey returns the last state reported for key to win. The returned state is
@@ -2438,7 +3149,7 @@ func (win *Window) GetMouseButton(button Button) Action {
 }
 
 // GetCursorPos returns the position of the cursor, in screen coordinates,
-// relative to the upper-left corner of the client area of win.
+// relative to the upper-left corner of the content area of win.
 //
 // If the cursor is disabled (with CursorDisabled) then the cursor position is
 // unbounded and limited only by the minimum and maximum values of a float64.
@@ -2458,7 +3169,7 @@ func (win *Window) GetCursorPos() (x, y float64) {
 }
 
 // SetCursorPos sets the position, in screen coordinates, of the cursor relative
-// to the upper-left corner of the client area of win. win must have input
+// to the upper-left corner of the content area of win. win must have input
 // focus. If win does not have input focus when this function is called, it
 // fails silently.
 //
@@ -2473,6 +3184,9 @@ func (win *Window) GetCursorPos() (x, y float64) {
 //
 // Possible errors include NotInitialized and PlatformError.
 //
+// On Wayland, this function will only work when the cursor mode is
+// CursorDisabled, otherwise it will do nothing.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetCursorPos(x, y float64) {
 	C.glfwSetCursorPos(win.c(), C.double(x), C.double(y))
@@ -2483,8 +3197,8 @@ func (win *Window) SetCursorPos(x, y float64) {
 // Any remaining cursors are destroyed by Context.Terminate().
 //
 // The pixels are 32-bit, little-endian, non-premultiplied RGBA, i.e. eight bits
-// per channel. They are arranged canonically as packed sequential rows,
-// starting from the top-left corner.
+// per channel with the red channel first. They are arranged canonically as
+// packed sequential rows, starting from the top-left corner.
 //
 // The cursor hotspot is specified in pixels, relative to the upper-left corner
 // of the cursor image. Like all other coordiate systems in GLFW, the X-axis
@@ -2493,8 +3207,6 @@ func (win *Window) SetCursorPos(x, y float64) {
 // Returns the handle of the created cursor, or nil if an error occurred.
 //
 // Possible errors include NotInitialized and PlatformError.
-//
-// This function must not be called from a callback.
 //
 // This function must only be called from the main thread.
 func (c *Context) CreateCursor(image *Image, xhot, yhot int) *Cursor {
@@ -2509,8 +3221,6 @@ func (c *Context) CreateCursor(image *Image, xhot, yhot int) *Cursor {
 //
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
-// This function must not be called from a callback.
-//
 // This function must only be called from the main thread.
 func (c *Context) CreateStandardCursor(shape CursorShape) *Cursor {
 	return (*Cursor)(C.glfwCreateStandardCursor(C.int(shape)))
@@ -2518,6 +3228,9 @@ func (c *Context) CreateStandardCursor(shape CursorShape) *Cursor {
 
 // Destroy destroys a cursor previously created with Context.CreateCursor(). Any
 // remaining cursors will be destroyed by Context.Terminate().
+//
+// If the specified cursor is current for any window, that window will be
+// reverted to the default cursor. This does not affect the cursor mode.
 //
 // Possible errors include NotInitialized and PlatformError.
 //
@@ -2528,8 +3241,8 @@ func (cursor *Cursor) Destroy() {
 	C.glfwDestroyCursor(cursor.c())
 }
 
-// SetCursor sets the cursor image to be used when the cursor is over the client
-// area of win. The set cursor will only be visible when the cursor mode
+// SetCursor sets the cursor image to be used when the cursor is over the
+// content area of win. The set cursor will only be visible when the cursor mode
 // (http://www.glfw.org/docs/latest/input_guide.html#cursor_mode) is
 // CursorNormal.
 //
@@ -2615,9 +3328,8 @@ func _keyCallback(cWin *C.GLFWwindow, cKey, cScancode, cAction, cMods C.int) {
 //
 // The character callback behaves as system text input normally does and will
 // not be called if modifier keys are held down that would prevent normal text
-// input on that platform, for example a Super (Command) key on OS X or Alt key
-// on Windows. There is a character with modifiers callback
-// (Window.SetCharModsCallback()) that receives these events.
+// input on that platform, for example a Super (Command) key on macOS or Alt key
+// on Windows.
 //
 // callback is the new callback, or nil to remove the currently set callback.
 //
@@ -2672,6 +3384,8 @@ func _charCallback(cWin *C.GLFWwindow, cCodepoint C.uint) {
 //
 // Returns the previously set callback, or nil if no callback was set or the
 // library had not been initialized.
+//
+// Scheduled for removal in version 4.0.
 //
 // Possible errors include NotInitialized.
 //
@@ -2751,7 +3465,7 @@ func _mouseButtonCallback(cWin *C.GLFWwindow, cButton, cAction, cMods C.int) {
 
 // SetCursorPosCallback sets the cursor position callback of win, which is
 // called when the cursor is moved. The callback is provided with the position,
-// in screen coordinates, relative to the upper-left corner of the client area
+// in screen coordinates, relative to the upper-left corner of the content area
 // of the window.
 //
 // callback is the new callback, or nil to remove the currently set callback.
@@ -2791,7 +3505,7 @@ func _cursorPosCallback(cWin *C.GLFWwindow, cX, cY C.double) {
 }
 
 // SetCursorEnterCallback sets the cursor boundary crossing callback of win,
-// which is called when the cursor enters or leaves the client area of the
+// which is called when the cursor enters or leaves the content area of the
 // window.
 //
 // callback is the new callback, or nil to remove the currently set callback.
@@ -2883,6 +3597,8 @@ func _scrollCallback(cWin *C.GLFWwindow, cXOffset, cYOffset C.double) {
 //
 // Possible errors include NotInitialized.
 //
+// On Wayland, file drop is currently unimplemented.
+//
 // This function must only be called from the main thread.
 func (win *Window) SetDropCallback(callback DropCallback) DropCallback {
 	callbacks, exist := windowCallbacks[win]
@@ -2918,28 +3634,31 @@ func _dropCallback(cWin *C.GLFWwindow, cCount C.int, cPaths **C.char) {
 	}
 }
 
-// JoystickPresent returns whether the specified joystick is present.
+// Present returns whether the specified joystick is present.
+//
+// There is no need to call this function before other functions that accept a
+// joystick ID, as they all check for presence before performing any other work.
 //
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
 // This function must only be called from the main thread.
-func (c *Context) JoystickPresent(joy Joystick) bool {
-	return int(C.glfwJoystickPresent(C.int(joy))) == True
+func (j Joystick) Present() bool {
+	return int(C.glfwJoystickPresent(C.int(j))) == True
 }
 
-// GetJoystickAxes returns the values of all axes of the specified joystick.
+// GetAxes returns the values of all axes of the specified joystick.
 // Each element in the slice is a value between -1.0 and 1.0.
 //
-// Querying a joystick slot with no device present is not an error, but will
-// cause this function to return nil. Call Context.JoystickPresent() to check
-// device presence.
+// If the specified joystick is not present this function will return nil but
+// will not generate an error. This can be used instead of first calling
+// Joystick.Present().
 //
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
 // This function must only be called from the main thread.
-func (c *Context) GetJoystickAxes(joy Joystick) []float32 {
+func (j Joystick) GetAxes() []float32 {
 	var cCount C.int
-	cAxes := C.glfwGetJoystickAxes(C.int(joy), &cCount)
+	cAxes := C.glfwGetJoystickAxes(C.int(j), &cCount)
 	if unsafe.Pointer(cAxes) != C.NULL {
 		count := int(cCount)
 		axes := make([]float32, 0, count)
@@ -2953,19 +3672,26 @@ func (c *Context) GetJoystickAxes(joy Joystick) []float32 {
 	return nil
 }
 
-// GetJoystickButtons returns the state of all buttons of the specified
+// GetButtons returns the state of all buttons of the specified
 // joystick. Each element in the slice is either Press or Release.
 //
-// Querying a joystick slot with no device present is not an error, but will
-// cause this function to return nil. Call Context.JoystickPresent() to check
-// device presence.
+// For backward compatibility with earlier versions that did not have
+// Context.GetJoystickHats(), the button array also includes all hats, each
+// represented as four buttons. The hats are in the same order as returned by
+// Context.GetJoystickHats() and are in the order up, right, down and left. To
+// disable these extra buttons, set the JoystickHatButtons init hint before
+// initialization.
+//
+// If the specified joystick is not present this function will return nil but
+// will not generate an error. This can be used instead of first calling
+// Joystick.Present().
 //
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
 // This function must only be called from the main thread.
-func (c *Context) GetJoystickButtons(joy Joystick) []Action {
+func (j Joystick) GetButtons() []Action {
 	var cCount C.int
-	cActions := C.glfwGetJoystickButtons(C.int(joy), &cCount)
+	cActions := C.glfwGetJoystickButtons(C.int(j), &cCount)
 	if unsafe.Pointer(cActions) != C.NULL {
 		count := int(cCount)
 		actions := make([]Action, 0, count)
@@ -2979,23 +3705,104 @@ func (c *Context) GetJoystickButtons(joy Joystick) []Action {
 	return nil
 }
 
-// GetJoystickName returns the name, encoded as UTF-8, of the specified
+// GetGUID returns the SDL comaptible GUID of the specified joystick.
+//
+// This function returns the SDL compatible GUID, as a UTF-8 encoded hexadecimal
+// string, of the specified joystick. The returned string is allocated and freed
+// by GLFW. You should not free it yourself.
+//
+// The GUID is what connects a joystick to a gamepad mapping. A connected
+// joystick will always have a GUID even if there is no gamepad mapping assigned
+// to it.
+//
+// If the specified joystick is not present this function will return "" but
+// will not generate an error. This can be used instead of first calling
+// Joystick.Present().
+//
+// The GUID uses the format introduced in SDL 2.0.5. This GUID tries to uniquely
+// identify the make and model of a joystick but does not identify a specific
+// unit, e.g. all wired Xbox 360 controllers will have the same GUID on that
+// platform. The GUID for a unit may vary between platforms depending on what
+// hardware information the platform specific APIs provide.
+//
+// Possible errors include NotInitialized, InvalidEnum and PlatformError.
+//
+// This function must only be called from the main thread.
+func (j Joystick) GetGUID() string {
+	return C.GoString(C.glfwGetJoystickGUID(C.int(j)))
+}
+
+// SetUserPointer sets the user pointer of the specified joystick.
+//
+// This function sets the user-defined pointer of the specified joystick. The
+// current value is retained until the joystick is disconnected. The initial
+// value is nil.
+//
+// This function may be called from the joystick callback, even for a joystick
+// that is being disconnected.
+//
+// Possible errors include @ref NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (j Joystick) SetUserPointer(pointer unsafe.Pointer) {
+	C.glfwSetJoystickUserPointer(C.int(j), pointer)
+}
+
+// GetUserPointer returns the user pointer of the specified joystick.
+//
+// This function returns the current value of the user-defined pointer of the
+// specified joystick. The initial value is nil.
+//
+// This function may be called from the joystick callback, even for a joystick
+// that is being disconnected.
+//
+// Possible errors include @ref NotInitialized.
+//
+// This function may be called from any thread. Access is not synchronized.
+func (j Joystick) GetUserPointer() unsafe.Pointer {
+	return unsafe.Pointer(C.glfwGetJoystickUserPointer(C.int(j)))
+}
+
+// IsGamepad returns whether the specified joystick has a gamepad mapping.
+//
+// This function returns whether the specified joystick is both present and has
+// a gamepad mapping.
+//
+// If the specified joystick is present but does not have a gamepad mapping this
+// function will return false but will not generate an error. Call
+// Joystick.Present() to check if a joystick is present regardless of whether it
+// has a mapping.
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (j Joystick) IsGamepad() bool {
+	return int(C.glfwJoystickIsGamepad(C.int(j))) == int(True)
+}
+
+// GetName returns the name, encoded as UTF-8, of the specified
 // joystick, or nil if the joystick is not present or an error occurred.
 //
 // Querying a joystick slot with no device present is not an error, but will
-// cause this function to return nil. Call Context.JoystickPresent() to check
+// cause this function to return nil. Call Joystick.Present() to check
 // device presence.
 //
 // Possible errors include NotInitialized, InvalidEnum and PlatformError.
 //
 // This function must only be called from the main thread.
-func (c *Context) GetJoystickName(joy Joystick) string {
-	return C.GoString(C.glfwGetJoystickName(C.int(joy)))
+func (j Joystick) GetName() string {
+	return C.GoString(C.glfwGetJoystickName(C.int(j)))
 }
 
 // SetJoystickCallback sets the joystick configuration callback, or removes the
 // currently set callback. This is called when a joystick is connected to or
 // disconnected from the system.
+//
+// For joystick connection and disconnection events to be delivered on all
+// platforms, you need to call one of the event processing functions. Joystick
+// disconnection may also be detected and the callback called by joystick
+// functions. The function will then return whatever it returns if the joystick
+// is not present.
 //
 // callback is the new callback, or nil to remove the currently set callback.
 //
@@ -3024,6 +3831,99 @@ func _joystickCallback(cJoy, cEvent C.int) {
 	}
 }
 
+// UpdateGamepadMappings adds the specified SDL_GameControllerDB gamepad
+// mappings.
+//
+// This function parses the specified ASCII encoded string and updates the
+// internal list with any gamepad mappings it finds. This string may contain
+// either a single gamepad mapping or many mappings separated by newlines. The
+// parser supports the full format of the gamecontrollerdb.txt source file
+// including empty lines and comments.
+//
+// See gamepad_mapping
+// (https://www.glfw.org/docs/latest/input_guide.html#gamepad_mapping)
+// for a description of the format.
+//
+// If there is already a gamepad mapping for a given GUID in the internal list,
+// it will be replaced by the one passed to this function. If the library is
+// terminated and re-initialized the internal list will revert to the built-in
+// default.
+//
+// Returnsl true if successful, or false if an error occurred.
+//
+// Possible errors include NotInitialized and InvalidValue.
+//
+// This function must only be called from the main thread.
+func (c *Context) UpdateGamepadMappings(mappings string) bool {
+	cMappings := C.CString(mappings)
+	defer C.free(unsafe.Pointer(cMappings))
+	return int(C.glfwUpdateGamepadMappings(cMappings)) == int(True)
+}
+
+// GetGamepadName returns the human-readable gamepad name for the specified
+// joystick.
+//
+// This function returns the human-readable name of the gamepad from the gamepad
+// mapping assigned to the specified joystick.
+//
+// If the specified joystick is not present or does not have a gamepad mapping
+// this function will return "" but will not generate an error. Call
+// Joystick.Present() to check whether it is present regardless of whether it
+// has a mapping.
+//
+// This function must only be called from the main thread.
+func (j Joystick) GetGamepadName() string {
+	return C.GoString(C.glfwGetGamepadName(C.int(j)))
+}
+
+// GetGamepadState retrieves the state of the specified joystick remapped as a
+// gamepad.
+//
+// This function retrives the state of the specified joystick remapped to an
+// Xbox-like gamepad.
+//
+// If the specified joystick is not present or does not have a gamepad mapping
+// this function will return false but will not generate an error. Call
+// Joystick.Present() to check whether it is present regardless of whether it
+// has a mapping.
+//
+// The Guide button may not be available for input as it is often hooked by the
+// system or the Steam client.
+//
+// Not all devices have all the buttons or axes provided by GamepadState.
+// Unavailable buttons and axes will always report Release and 0.0 respectively.
+//
+// Possible errors include NotInitialized and InvalidEnum.
+//
+// This function must only be called from the main thread.
+func (j Joystick) GetGamepadState() (*GamepadState, bool) {
+	cState := new(C.GLFWgamepadstate)
+	cSuccess := C.glfwGetGamepadState(C.int(j), cState)
+	if int(cSuccess) == int(False) {
+		return nil, false
+	}
+
+	state := new(GamepadState)
+	for i, cButton := range cState.buttons {
+		state.Buttons[i] = Action(cButton)
+	}
+	for i, cAxis := range cState.axes {
+		state.Axes[i] = float32(cAxis)
+	}
+	return state, true
+}
+
+// SetClipboardString sets the system clipboard to str, a UTF-8 encoded string.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// The function must only be called from the main thread.
+func (c *Context) SetClipboardString(str string) {
+	cStr := C.CString(str)
+	defer C.free(unsafe.Pointer(cStr))
+	C.glfwSetClipboardString((*C.GLFWwindow)(C.NULL), cStr)
+}
+
 // SetClipboardString sets the system clipboard to str, a UTF-8 encoded string.
 //
 // Possible errors include NotInitialized and PlatformError.
@@ -3033,6 +3933,18 @@ func (win *Window) SetClipboardString(str string) {
 	cStr := C.CString(str)
 	defer C.free(unsafe.Pointer(cStr))
 	C.glfwSetClipboardString(win.c(), cStr)
+}
+
+// GetClipboardString returns the contents of the system clipboard, if it
+// contains or is convertible to a UTF-8 encoded string. If the clipboard is
+// empty or if its contents cannot be converted, nil is returned and a
+// FormatUnavailable error is generated.
+//
+// Possible errors include NotInitialized and PlatformError.
+//
+// This function must only be called from the main thread.
+func (c *Context) GetClipboardString() string {
+	return C.GoString(C.glfwGetClipboardString((*C.GLFWwindow)(C.NULL)))
 }
 
 // GetClipboardString returns the contents of the system clipboard, if it
@@ -3107,8 +4019,11 @@ func (c *Context) GetTimerFrequency() uint64 {
 }
 
 // MakeContextCurrent makes the OpenGL or OpenGL ES context of win current on
-// the calling thread. A context can only be made current on a single thread
+// the calling thread. A context must only be made current on a single thread
 // at a time and each thread can have only a single current context at a time.
+//
+// When moving a context between threads, you must make it non-current on the
+// old thread before making it current on the new one.
 //
 // By default, making a context non-current implicitly forces a pipeline flush.
 // On machines that support GL_KHR_context_flush_control, you can control
@@ -3124,6 +4039,30 @@ func (c *Context) GetTimerFrequency() uint64 {
 //
 // This function may be called from any thread.
 func (c *Context) MakeContextCurrent(win *Window) {
+	C.glfwMakeContextCurrent(win.c())
+}
+
+// MakeContextCurrent makes the OpenGL or OpenGL ES context of win current on
+// the calling thread. A context must only be made current on a single thread
+// at a time and each thread can have only a single current context at a time.
+//
+// When moving a context between threads, you must make it non-current on the
+// old thread before making it current on the new one.
+//
+// By default, making a context non-current implicitly forces a pipeline flush.
+// On machines that support GL_KHR_context_flush_control, you can control
+// whether a context performs this flush by setting the ContextReleaseBehavior
+// window hint.
+//
+// win must have an OpenGL or OpenGL ES context. Specifying a window without a
+// context will generate a NoWindowContext error.
+//
+// If win is nil, this function will detach the current context.
+//
+// Possible errors include NotInitialized, NoWindowContext and PlatformError.
+//
+// This function may be called from any thread.
+func (win *Window) MakeContextCurrent() {
 	C.glfwMakeContextCurrent(win.c())
 }
 
@@ -3168,12 +4107,11 @@ func (win *Window) SwapBuffers() {
 // This is sometimes called vertical synchronization, vertical retrace
 // synchronization or just vsync.
 //
-// Contexts that support either of the WGL_EXT_swap_control_tear and
-// GLX_EXT_swap_control_tear extensions also accpet negative swap intervals,
-// which allow the driver to swap even if a frame arrives a little bit late.
-// You can check for the presence of these extensions using
-// Context.ExtensionSupported. For more information about swap tearing, see the
-// extension specifications.
+// A context that supports either of the WGL_EXT_swap_control_tear and
+// GLX_EXT_swap_control_tear extensions also accepts negative swap intervals,
+// which allows the driver to swap immediately even if a frame arrives a little
+// bit late. You can check for these extensions with
+// Context.ExtensionSupported().
 //
 // A context must be current on the calling thread. Calling this function
 // without a current context will cause a NoCurrentContext error.
@@ -3261,15 +4199,18 @@ func (c *Context) GetProcAddress(procName string) unsafe.Pointer {
 	return unsafe.Pointer(C.glfwGetProcAddress(cProcName))
 }
 
-// VulkanSupported returns whether the Vulkan loader has been found. This check
-// is performed by Init().
+// VulkanSupported returns whether the Vulkan loader and any minimally
+// functional ICD have been found.
 //
-// The availability of a Vulkan loader does not by itself guarantee that window
-// surface creation or even device creation is possible. Call
-// Context.GetRequiredInstanceExtensinos to check whether the extensions
-// necessary for Vulkan surface creation are available and
-// Context.GetPhysicalDevicePresentationSupport to check whether a queue family
-// of a physical device supports image presentation.
+// The availability of a Vulkan loader and even an ICD does not by itself
+// guarantee that surface creation or even instance creation is possible. For
+// example, on Fermi systems Nvidia will install an ICD that provides no actual
+// Vulkan support. Call @ref glfwGetRequiredInstanceExtensions to check whether
+// the extensions necessary for Vulkan surface creation are available and
+// Context.GetPhysicalDevicePresentationSupport() to check whether a queue
+// family of a physical device supports image presentation.
+//
+// Returns true if Vulkan is minimally available, or false otherwise.
 //
 // Possible errors include NotInitialized.
 //
@@ -3286,7 +4227,7 @@ func (c *Context) VulkanSupported() bool {
 //
 // If Vulkan is not available on the machine, this function returns nil and
 // generates an APIUnavailable error. Call Context.VulkanSupported() to check
-// whether Vulkan is available.
+// whether Vulkan is at least minimally available.
 //
 // If Vulkan is available but no set of extensions allowing window surface
 // creation was found, this function returns nil. You may still use Vulkan for
@@ -3300,6 +4241,9 @@ func (c *Context) VulkanSupported() bool {
 // check if any extensions you wish to enable are already in the returned slice,
 // as it is an error to specify an extension more that once in the
 // vkInstanceCreateInfo struct.
+//
+// On macOS, this function currently only supports the VK_MVK_macos_surface
+// extension from MoltenVK.
 //
 // This function may be called from any thread.
 func (c *Context) GetRequiredInstanceExtensions() []string {
